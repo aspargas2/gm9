@@ -40,6 +40,7 @@ GRAPHICS	:=	gfx
 GFXBUILD	:=	$(BUILD)
 #ROMFS		:=	romfs
 #GFXBUILD	:=	$(ROMFS)/gfx
+APP_AUTHOR  :=  aspargas2
 
 #---------------------------------------------------------------------------------
 # options for code generation
