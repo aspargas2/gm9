@@ -15,6 +15,7 @@
 #include "png.h"
 #include "ips.h"
 #include "bps.h"
+#include "tmd.h"
 
 
 #define _MAX_ARGS       4
@@ -108,6 +109,9 @@ typedef enum {
     CMD_ID_DECRYPT,
     CMD_ID_ENCRYPT,
     CMD_ID_BUILDCIA,
+	CMD_ID_BUILDMDS,
+	CMD_ID_STRIPAPP,
+	CMD_ID_SETSDAPP,
     CMD_ID_EXTRCODE,
     CMD_ID_CMPRCODE,
     CMD_ID_SDUMP,
@@ -178,9 +182,12 @@ Gm9ScriptCmd cmd_list[] = {
     { CMD_ID_DUMPTXT , "dumptxt" , 2, _FLG('p') },
     { CMD_ID_FIXCMAC , "fixcmac" , 1, 0 },
     { CMD_ID_VERIFY  , "verify"  , 1, 0 },
-    { CMD_ID_DECRYPT , "decrypt" , 1, 0 },
+    { CMD_ID_DECRYPT , "decrypt" , 2, 0 },
     { CMD_ID_ENCRYPT , "encrypt" , 1, 0 },
     { CMD_ID_BUILDCIA, "buildcia", 1, _FLG('l') },
+	{ CMD_ID_BUILDMDS, "buildmds", 1, _FLG('t') | _FLG('c') },
+	{ CMD_ID_STRIPAPP, "stripapp", 2, 0 },
+	{ CMD_ID_SETSDAPP, "setsdapp", 1, 0 },
     { CMD_ID_EXTRCODE, "extrcode", 2, 0 },
     { CMD_ID_CMPRCODE, "cmprcode", 2, 0 },
     { CMD_ID_SDUMP   , "sdump",    1, _FLG('w') },
@@ -533,7 +540,7 @@ cmd_id get_cmd_id(char* cmd, u32 len, u32 flags, u32 argc, char* err_str) {
     if (!cmd_entry) {
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "unknown cmd");
     } else if (cmd_entry->n_args != argc) {
-        if (err_str) snprintf(err_str, _ERR_STR_LEN, "bad # of args");
+        if (err_str) snprintf(err_str, _ERR_STR_LEN, "bad # of args. expected %ld but got %ld", cmd_entry->n_args, argc);
     } else if (~(cmd_entry->allowed_flags|_FLG('o')|_FLG('s')) & flags) {
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "unrecognized flags");
     } else return cmd_entry->id;
@@ -1301,7 +1308,7 @@ bool run_cmd(cmd_id id, u32 flags, char** argv, char* err_str) {
     else if (id == CMD_ID_DECRYPT) {
         u64 filetype = IdentifyFileType(argv[0]);
         if (filetype & BIN_KEYDB) ret = (CryptAesKeyDb(argv[0], true, false) == 0);
-        else ret = (CryptGameFile(argv[0], true, false) == 0);
+        else ret = (PCryptGameFile(argv[0], argv[1], false) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "decrypt failed");
     }
     else if (id == CMD_ID_ENCRYPT) {
@@ -1314,6 +1321,18 @@ bool run_cmd(cmd_id id, u32 flags, char** argv, char* err_str) {
         ret = (BuildCiaFromGameFile(argv[0], (flags & _FLG('n'))) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "build CIA failed");
     }
+	else if (id == CMD_ID_BUILDMDS) {
+		ret = (BuildCmdTmdFromSDDir(argv[0], flags & _FLG('c'), flags & _FLG('t')) == 0);
+        if (err_str) snprintf(err_str, _ERR_STR_LEN, "build MetaData failed");
+	}
+	else if (id == CMD_ID_STRIPAPP) {
+		ret = (StripNcch(argv[0], argv[1]) == 0);
+        if (err_str) snprintf(err_str, _ERR_STR_LEN, "strip NCCH failed");
+	}
+	else if (id == CMD_ID_SETSDAPP) {
+		ret = (SetNcchFileSdFlag(argv[0]) == 0);
+		if (err_str) snprintf(err_str, _ERR_STR_LEN, "set SD app flag failed");
+	}
     else if (id == CMD_ID_EXTRCODE) {
         u64 filetype = IdentifyFileType(argv[0]);
         if (!FTYPE_HASCODE(filetype)) {
