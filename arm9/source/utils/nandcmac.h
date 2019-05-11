@@ -5,6 +5,7 @@
 #define ReadFileCmac(path, cmac)    ReadWriteFileCmac(path, cmac, false)
 #define WriteFileCmac(path, cmac)   ReadWriteFileCmac(path, cmac, true)  
 
+u32 SetupSlot0x30(char drv);
 u32 CheckCmacPath(const char* path);
 u32 ReadWriteFileCmac(const char* path, u8* cmac, bool do_write);
 u32 CalculateFileCmac(const char* path, u8* cmac);

@@ -1,9 +1,13 @@
 #pragma once
 
 #include "common.h"
+#include "game.h"
 
+u32 LoadNcchHeaders(NcchHeader* ncch, NcchExtHeader* exthdr, ExeFsHeader* exefs, const char* path, u32 offset);
+u32 LoadNcsdHeader(NcsdHeader* ncsd, const char* path);
 u32 VerifyGameFile(const char* path);
 u32 CheckEncryptedGameFile(const char* path);
+u32 PCryptGameFile(const char* path, const char* outdir, bool encrypt);
 u32 CryptGameFile(const char* path, bool inplace, bool encrypt);
 u32 BuildCiaFromGameFile(const char* path, bool force_legit);
 u32 DumpCxiSrlFromTmdFile(const char* path);
@@ -21,3 +25,5 @@ u32 InjectHealthAndSafety(const char* path, const char* destdrv);
 u32 BuildTitleKeyInfo(const char* path, bool dec, bool dump);
 u32 BuildSeedInfo(const char* path, bool dump);
 u32 GetGoodName(char* name, const char* path, bool quick);
+u32 StripNcch(const char* inpath, const char* outpath);
+u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd);

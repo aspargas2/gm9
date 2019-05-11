@@ -107,5 +107,6 @@ u32 SetupNcchCrypto(NcchHeader* ncch, u16 crypt_to);
 u32 CryptNcch(void* data, u32 offset, u32 size, NcchHeader* ncch, ExeFsHeader* exefs, u16 crypto);
 u32 CryptNcchSequential(void* data, u32 offset, u32 size, u16 crypto);
 u32 SetNcchSdFlag(void* data);
+u32 SetNcchFileSdFlag(const char* path);
 
 u32 AddSeedToDb(SeedInfo* seed_info, SeedInfoEntry* seed_entry);

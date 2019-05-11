@@ -5,6 +5,7 @@
 #include "aes.h"
 #include "sha.h"
 #include "ff.h"
+#include "vff.h"
 
 #define EXEFS_KEYID(name) (((strncmp(name, "banner", 8) == 0) || (strncmp(name, "icon", 8) == 0)) ? 0 : 1)
 
@@ -356,4 +357,16 @@ u32 SetNcchSdFlag(void* data) { // data must be at least 0x600 byte and start wi
     sha_quick(ncch->hash_exthdr, &exthdr_dec, 0x400, SHA256_MODE);
     
     return 0;
+}
+
+u32 SetNcchFileSdFlag(const char* path) {
+	u8 data[0x600];
+	UINT brw;
+	
+	if ((fvx_qread(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600) ||
+		(SetNcchFileSdFlag((void*)data) != 0) ||
+		(fvx_qwrite(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600))
+		return 1;
+	
+	return 0;
 }
