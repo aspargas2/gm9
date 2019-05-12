@@ -1135,26 +1135,18 @@ u32 CryptCdnFile(const char* orig, const char* dest, u16 crypto) {
     return ret;
 }
 
-u32 PCryptGameFile(const char* path, const char* outdir, bool encrypt) {
+u32 PCryptGameFile(const char* path, const char* outpath, bool encrypt) {
     u64 filetype = IdentifyFileType(path);
     u16 crypto = encrypt ? CRYPTO_ENCRYPT : CRYPTO_DECRYPT;
-    char dest[256];
-    char* destptr = (char*) path;
+    char outdir[256] = { '\0' };
+    const char* destptr = (char*) path;
     u32 ret = 0;
-	bool inplace = ((outdir == NULL) ? true : false);
+	bool inplace = ((outpath == NULL) ? true : false);
 	
-    if (!inplace) { // build output name
-        memcpy(dest, outdir, 256);
-		u32 curLen = strlen(dest);
-		dest[curLen] = '/';
-		dest[curLen + 1] = '\0';
-        char* dname = dest + strnlen(dest, 256);
-        if ((strncmp(path + 1, ":/title/", 8) != 0) || (GetGoodName(dname, path, false) != 0)) {
-            char* name = strrchr(path, '/');
-            if (!name) return 1;
-            snprintf(dest, 256, "%s/%s", outdir, ++name);
-        }
-        destptr = dest;
+	if (!inplace) { // build output name
+		destptr = outpath;
+		memcpy(outdir, outpath, strlen(outpath) - strlen(strrchr(outpath, '/')));
+		//ShowPrompt(false, outdir);
     }
 	
     if (!CheckWritePermissions(destptr))
@@ -1176,14 +1168,17 @@ u32 PCryptGameFile(const char* path, const char* outdir, bool encrypt) {
     else ret = 1;
     
     if (!inplace && (ret != 0))
-        f_unlink(dest); // try to get rid of the borked file
+        fvx_unlink(destptr); // try to get rid of the borked file
     
     return ret;
 }
 
 u32 CryptGameFile(const char* path, bool inplace, bool encrypt)
 {
-	return PCryptGameFile(path, (inplace ? (const char*)NULL : OUTPUT_PATH), encrypt);
+	char myPath[256] = { '\0' };
+	sprintf(myPath, "%s%s", OUTPUT_PATH, strrchr(path, '/'));
+	ShowPrompt(false, myPath);
+	return PCryptGameFile(path, (inplace ? (const char*)NULL : myPath), encrypt);
 }
 
 u32 InsertCiaContent(const char* path_cia, const char* path_content, u32 offset, u32 size,
