@@ -152,6 +152,14 @@ int main()
 	gfxInitDefault();
 	consoleInit(GFX_TOP, NULL);
 	
+	//Result rc;
+	FILE* file;
+	DIR* dir;
+	char path[300], path2[300];
+	char id0[33] = { '\0' };
+	char id1[33] = { '\0' };
+	struct dirent* de;
+	
 	if(R_FAILED(init()))
 	{
 		printf("Init failed!\n");
@@ -159,31 +167,132 @@ int main()
 		return 1;
 	}
 	
-	struct dirent* de;
-	char path[300];
-   
-    DIR* dr = opendir("sdmc:/dummycias"); 
-  
-    if (!dr)
+	remove("sdmc:/luma/config.bin");
+	remove("sdmc:/boot.3dsx");
+	rename("sdmc:/cartInstallWorkDir/config.bin.bak", "sdmc:/luma/config.bin");
+	rename("sdmc:/cartInstallWorkDir/boot.3dsx.bak", "sdmc:/boot.3dsx");
+	
+	if (!(file = fopen("sdmc:/cartInstallWorkDir/id0.txt", "r")))
+	{
+		printf("Could not open id0.txt\n");
+		reboot(true);
+		return 1;
+	}
+	
+	if (fread(id0, 1, 32, file) != 32)
+	{
+		printf("Could not read id0.txt\n");
+		fclose(file);
+		reboot(true);
+		return 1;
+	}
+	
+	fclose(file);
+	
+	sprintf(path, "sdmc:/Nintendo 3DS/%s", id0);
+	printf("id0: %s\n", id0);
+	if (!(dir = opendir(path)))
     { 
-        printf("Could not open dummycias dir"); 
+        printf("Could not open id0 dir\nattempted path: %s\n", path); 
+        reboot(true);
+		return 1;
+    }
+	
+	int c = 0;
+	while ((de = readdir(dir)) != NULL)
+	{
+		strcpy(id1, de->d_name);
+		c++;
+	}
+	
+	closedir(dir);
+	
+	if (c > 1)
+	{
+		printf("multiple id1 dirs. handling for this isn't implemented yet. go yell at asp.\n");
+		reboot(true);
+		return 1;
+		/*u8 sdCid[16];
+		if (R_FAILED(rc = FSUSER_GetSdmcCid(sdCid, 0x10)))
+		{
+			printf("FSUSER_GetSdmcCid: %08lX\n", rc);
+			reboot(true);
+			return 1;
+		}
+		
+		u8 temp = sdCid[0];
+		for (int i = 0; i < 15; i++)
+		{
+			sdCid[i] = sdCid[i + 1];
+		}
+		sdCid[15] = temp;
+		
+		u16* sdCid16 = (u16*)sdCid;
+		u16 scrambledSdCid[8];
+		
+		scrambledSdCid[0] = sdCid16[6];
+		scrambledSdCid[1] = sdCid16[7];
+		scrambledSdCid[2] = sdCid16[4];
+		scrambledSdCid[3] = sdCid16[5];
+		scrambledSdCid[4] = sdCid16[2];
+		scrambledSdCid[5] = sdCid16[3];
+		scrambledSdCid[6] = sdCid16[0];
+		scrambledSdCid[7] = sdCid16[1];
+		
+		for (int i = 0; i < 8; i++)
+		{
+			sprintf(id1 + (4 * i), "%04X", sdCid16[i]);
+		}*/
+	}
+	
+	printf("id1: %s\n", id1);
+	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title0", id0, id1);
+	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
+	
+	if (rename(path2, path) != 0)
+	{
+		printf("rename fail!");
+		reboot(true);
+		return 1;
+	}
+	
+    if (!(dir = opendir("sdmc:/cartInstallWorkDir")))
+    { 
+        printf("could not open cartInstallWorkDir\n"); 
         reboot(true);
 		return 1;
     } 
   
-    while ((de = readdir(dr)) != NULL)
+    while ((de = readdir(dir)) != NULL)
 	{
 		if (strcmp(".cia", &(de->d_name[strlen(de->d_name) - 4])) == 0)
 		{
-			sprintf(path, "/dummycias/%s", de->d_name);
+			sprintf(path, "/cartInstallWorkDir/%s", de->d_name);
 			if (R_FAILED(installSdCia(path)))
-				printf("Installation failed, proceeding regardless\n");
+				printf("installation failed, proceeding regardless\n");
 		}
 	}
 	
-    closedir(dr);
+    closedir(dir);
 	
-	reboot(false);
+	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/delme", id0, id1);
+	if (rename(path2, path) != 0)
+	{
+		printf("rename 2 fail!");
+		reboot(true);
+		return 1;
+	}
+	
+	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title0", id0, id1);
+	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
+	if (rename(path, path2) != 0)
+	{
+		printf("rename 3 fail!");
+		reboot(true);
+		return 1;
+	}
+	
+	reboot(true);
 	
 	return 0; // Should never get here
 }
