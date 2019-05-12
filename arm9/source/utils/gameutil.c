@@ -2663,9 +2663,17 @@ u32 StripNcch(const char* inpath, const char* outpath)
 	UINT brw;
 	
 	if (fvx_open(&ncchSource, inpath, FA_READ | FA_OPEN_EXISTING) != FR_OK)
+	{
+		ShowPrompt(false, "Open source ncch fail");
 		return 1;
+	}
 	
-	fvx_lseek(&ncchSource, 0x1A0);
+	if (fvx_lseek(&ncchSource, 0x1A0) != FR_OK)
+	{
+		ShowPrompt(false, "Seek to exeFS offset fail");
+		fvx_close(&ncchSource);
+		return 1;
+	}
 	
 	if ((fvx_read(&ncchSource, &exefsOffsetMUnits, 4, &brw) != FR_OK) || (brw != 4))
 	{
@@ -2680,12 +2688,14 @@ u32 StripNcch(const char* inpath, const char* outpath)
 	ncchBuff = malloc(exefsOffset);
 	if (!ncchBuff)
 	{
+		ShowPrompt(false, "malloc fail\nexefsOffsetMUnits: %d\nexefsOffset: %d", exefsOffsetMUnits, exefsOffset);
 		fvx_close(&ncchSource);
 		return 1;
 	}
 	
 	if ((fvx_read(&ncchSource, ncchBuff, exefsOffset, &brw) != FR_OK) || (brw != exefsOffset))
 	{
+		ShowPrompt(false, "Read up to exeFS fail.\nbrw was %d while exefsOffset was %d", brw, exefsOffset);
 		fvx_close(&ncchSource);
 		return 1;
 	}
@@ -2696,12 +2706,14 @@ u32 StripNcch(const char* inpath, const char* outpath)
 	memset(ncchBuff + 0x1A0, 0, 0x20);
 	
 	if (fvx_open(&ncchDest, outpath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
+	{
+		ShowPrompt(false, "Open dest ncch fail");
 		return 1;
-	
-	
+	}
 	
 	if ((fvx_write(&ncchDest, (const void*)ncchBuff, exefsOffset, &brw) != FR_OK) || (brw != exefsOffset))
 	{
+		ShowPrompt(false, "Write stripped ncch fail");
 		fvx_close(&ncchDest);
 		return 1;
 	}
