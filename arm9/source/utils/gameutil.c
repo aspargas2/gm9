@@ -1177,7 +1177,7 @@ u32 CryptGameFile(const char* path, bool inplace, bool encrypt)
 {
 	char myPath[256] = { '\0' };
 	sprintf(myPath, "%s%s", OUTPUT_PATH, strrchr(path, '/'));
-	ShowPrompt(false, myPath);
+	//ShowPrompt(false, myPath);
 	return PCryptGameFile(path, (inplace ? (const char*)NULL : myPath), encrypt);
 }
 
@@ -2746,7 +2746,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 	
 	while ((fvx_preaddir(&dp, &fno, "*.app") == FR_OK) && *(fno.fname))
 	{
-		ShowPrompt(false, "Filename:\n%s", fno.fname);
+		//ShowPrompt(false, "Filename:\n%s", fno.fname);
 		memcpy(contents[strtol(fno.fname, NULL, 16)], fno.fname, 8);
 		contentCount++;
 	}
@@ -2788,7 +2788,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 		char buf[3] = { '\0' };
 		for (u8 i = 0; i < contentCount; i++)
 		{
-			ShowPrompt(false, "content:\n%s", contents[i]);
+			//ShowPrompt(false, "content:\n%s", contents[i]);
 			for (u8 j = 0; j < 8; j += 2)
 			{
 				memcpy(buf, contents[i] + j, 2);
@@ -2807,7 +2807,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 			u32 size = fvx_qsize(strcat(myPath, ".app"));
 			size = getbe32((u8*)&size);
 			memcpy(tcc.size + 4, &size, 4);
-			ShowPrompt(false, "Path:\n%s", myPath);
+			//ShowPrompt(false, "Path:\n%s", myPath);
 			if (!FileGetSha256(myPath, tcc.hash, 0, 0))
 			{
 				ShowPrompt(false, "GetSha fail!");
@@ -2882,7 +2882,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 			cmacMessageField[0x100] = (u8)i;
 			cmacMessageField[0x104] = (u8)i;
 			sha_quick(shaBuf, cmacMessageField, 0x108, SHA256_MODE);
-			ShowPrompt(false, "content%d hash:\n%X", i, *shaBuf);
+			//ShowPrompt(false, "content%d hash:\n%X", i, *shaBuf);
 			if (SetupSlot0x30(*path) != 0)
 			{
 				ShowPrompt(false, "0x30 fail!");
@@ -2893,7 +2893,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 		memcpy(cmd + 0x20 + (contentCount * 4), cmd + 0x20, contentCount * 4);
 		
 		sprintf(myPath, "%s/cmd/0000000%01X.cmd", path, contentCount - 1);
-		ShowPrompt(false, "cmd path:\n%s", myPath);
+		//ShowPrompt(false, "cmd path:\n%s", myPath);
 		if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
 		{
 			free(cmd);
