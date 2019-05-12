@@ -2609,6 +2609,6 @@ u32 ScriptRunner(int entrypoint) {
     DeinitExtFS();
     DeinitSDCardFS();
     
-    return GODMODE_EXIT_REBOOT;
+    return GODMODE_EXIT_POWEROFF;
 }
 #endif
