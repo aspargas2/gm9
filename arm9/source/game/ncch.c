@@ -364,7 +364,7 @@ u32 SetNcchFileSdFlag(const char* path) {
 	UINT brw;
 	
 	if ((fvx_qread(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600) ||
-		(SetNcchFileSdFlag((void*)data) != 0) ||
+		(SetNcchSdFlag((void*)data) != 0) ||
 		(fvx_qwrite(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600))
 		return 1;
 	
