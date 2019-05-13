@@ -96,7 +96,7 @@ if find G:/content1.manual.app CONTENT1_PATH
 		goto CopyFail
 	end
 	setsdapp $[CONTENT_DIR]/00000001.app
-	stripncch $[CONTENT_DIR]/00000001.app $[WORKDIR]/00000001.app
+	stripapp $[CONTENT_DIR]/00000001.app $[WORKDIR]/00000001.app
 end
 
 if find G:/content2.dlp.app CONTENT2_PATH
@@ -104,7 +104,7 @@ if find G:/content2.dlp.app CONTENT2_PATH
 		goto CopyFail
 	end
 	setsdapp $[CONTENT_DIR]/00000002.app
-	stripncch $[CONTENT_DIR]/00000002.app $[WORKDIR]/00000002.app
+	stripapp $[CONTENT_DIR]/00000002.app $[WORKDIR]/00000002.app
 end
 
 mkdir $[CONTENT_DIR]/cmd
