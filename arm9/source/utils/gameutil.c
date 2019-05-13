@@ -2879,9 +2879,9 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 		}
 		
 		memset(cmd, 0, 0x10);
-		memset(cmd + 0, --contentCount, 1);
-		memset(cmd + 4, ++contentCount, 1);
-		memset(cmd + 8, contentCount, 1);
+		memset(cmd + 0x0, 1, 1);
+		memset(cmd + 0x4, contentCount, 1);
+		memset(cmd + 0x8, contentCount, 1);
 		memset(cmd + 0xC, 1, 1);
 		aes_cmac(cmd, cmd + 0x10, 1);
 		
@@ -2912,7 +2912,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 		}
 		memcpy(cmd + 0x20 + (contentCount * 4), cmd + 0x20, contentCount * 4);
 		
-		sprintf(myPath, "%s/cmd/0000000%01X.cmd", path, contentCount - 1);
+		sprintf(myPath, "%s/cmd/00000001.cmd", path);
 		//ShowPrompt(false, "cmd path:\n%s", myPath);
 		if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
 		{
