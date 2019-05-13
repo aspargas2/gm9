@@ -66,6 +66,35 @@ void reboot(bool showPrompt)
 	deInit();
 }
 
+void recursiveDelDir(const char* path)
+{
+	if ((unlink(path) != 0) && (rmdir(path) != 0))
+	{
+		char path2[300];
+		struct dirent* de;
+		DIR* dir;
+	
+		if (!(dir = opendir(path)))
+		{ 
+			printf("could not open dir in recursiveDelDir\npath: %s\n", path);
+			return;
+		} 
+	  
+		while ((de = readdir(dir)) != NULL)
+		{
+			sprintf(path2, "%s/%s", path, de->d_name);
+			recursiveDelDir(path2);
+		}
+		
+		closedir(dir);
+		
+		if (rmdir(path) != 0)
+		{
+			printf("deleted all items in a non-empty dir, but rmdir still failed\npath: %s\n", path);
+		}
+	}
+}
+
 // Modeled from https://github.com/joel16/3DShell/blob/master/source/cia.c
 Result installSdCia(const char* path)
 {
@@ -251,7 +280,7 @@ int main()
 	
 	if (rename(path2, path) != 0)
 	{
-		printf("rename fail!");
+		perror("rename fail!");
 		reboot(true);
 		return 1;
 	}
@@ -269,30 +298,41 @@ int main()
 		{
 			sprintf(path, "/cartInstallWorkDir/%s", de->d_name);
 			if (R_FAILED(installSdCia(path)))
-				printf("installation failed, proceeding regardless\n");
+			{
+				printf("installation failed, skipping save copy and cia delete\n");
+				continue;
+			}
+			unlink(path);
+			char tidlow[9] = { '\0' };
+			memcpy(tidlow, de->d_name, 8);
+			sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title/00040000/%s/data", id0, id1, tidlow);
+			sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title0/00040000/%s/data", id0, id1, tidlow);
+			rename(path, path2);
 		}
 	}
 	
     closedir(dir);
 	
 	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/delme", id0, id1);
+	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
 	if (rename(path2, path) != 0)
 	{
-		printf("rename 2 fail!");
+		perror("rename 2 fail!");
 		reboot(true);
 		return 1;
 	}
+	
+	recursiveDelDir(path);
 	
 	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title0", id0, id1);
-	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
 	if (rename(path, path2) != 0)
 	{
-		printf("rename 3 fail!");
+		perror("rename 3 fail!");
 		reboot(true);
 		return 1;
 	}
 	
-	reboot(true);
+	reboot(false);
 	
 	return 0; // Should never get here
 }
