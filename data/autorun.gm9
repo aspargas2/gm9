@@ -1,0 +1,142 @@
+textview V:/README_internal.md
+
+@CartInstall
+if not find C:/*.trim.3ds ROM_PATH
+	if ask "Unable to detect 3DS cartridge.\n\nTry again?\n(Choosing no will power off.)"
+		goto CartInstall
+	else
+		poweroff
+	end
+end
+
+imgmount $[ROM_PATH]
+if not find G:/content0.game.app CONTENT0_PATH
+	echo "Cartridge image detected, but unable to find content0.\nThis should not happen.\nThe system will now power off."
+	poweroff
+end
+
+fget -e $[CONTENT0_PATH]@118:4 TID_LOW
+# echo $[TID_LOW]
+
+@SDCheck
+if not isdir 0:
+	if ask "Could not detect SD card.\n\nTry again?\n(Choosing no will power off.)"
+		goto SDCheck
+	else
+		poweroff
+	end
+end
+
+if not isdir A:
+	echo "Virtual mount of SD data does not exist.\nThis can happen if the normal 3DS OS has never been booted on this system with this SD.\nThe system will now power off."
+	poweroff
+end
+
+if not find 0:/luma/config.bin CONFIG_PATH
+	echo "Luma config file does not exist on SD.\nPlease boot into luma 8.0+ with this SD once.\nThe system will now power off."
+	poweroff
+end
+
+if not find V:/installFinalizer.3dsx HB_APP_PATH
+	echo "3DSX app does not exist in VRAM mount.\nThis can only happen if this script is running outside the intended context.\nThe system will now power off."
+	poweroff
+end
+
+if	 chk $[REGION] "USA"
+	set R_HOME_MENU_TID 028F000030000400
+elif chk $[REGION] "EUR"
+	set R_HOME_MENU_TID 0298000030000400
+elif chk $[REGION] "JPN"
+	set R_HOME_MENU_TID 0282000030000400
+elif chk $[REGION] "KOR"
+	set R_HOME_MENU_TID 02A9000030000400
+elif chk $[REGION] "CHN"
+	set R_HOME_MENU_TID 02A1000030000400
+elif chk $[REGION] "TWN"
+	set R_HOME_MENU_TID 02B1000030000400
+else
+	echo "Unable to detect system region.\nThis should not happen.\nThe system will now power off."
+	poweroff
+end
+
+if not allow A:/
+	echo "Write permissions denied.\nThe system will now power off."
+	poweroff
+end
+
+
+set CONTENT_DIR A:/title/00040000/$[TID_LOW]/content
+if find A:/title/00040000/$[TID_LOW] TID_LOW_DIR
+	if ask "Some data alredy exists on the SD for\nthe game on the gamecart!\nOverwrite it?\nWARNING: THIS WILL DELETE ANY EXISTING SAVE FILE!!\n(Choosing no will power off)."
+		rm $[TID_LOW_DIR]
+	else
+		poweroff
+	end
+end
+
+if not isdir 0:/cartInstallWorkDir
+	mkdir 0:/cartInstallWorkDir
+end
+set WORKDIR 0:/cartInstallWorkDir
+
+if not decrypt -o $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
+	@CopyFail
+	echo "Content decryption failed.\nThis could be due to not having enough free space\non the SD, or due to the user cancelling the copy."
+	echo "The system will now remove any gamedata created\nin this session and power off."
+	for $[CONTENT_DIR] *
+		rm -o -s $[FORPATH]
+	next
+	poweroff
+end
+setsdapp $[CONTENT_DIR]/00000000.app
+stripapp $[CONTENT_DIR]/00000000.app $[WORKDIR]/00000000.app
+
+if find G:/content1.manual.app CONTENT1_PATH
+	if not decrypt -o $[CONTENT1_PATH] $[CONTENT_DIR]/00000001.app
+		goto CopyFail
+	end
+	setsdapp $[CONTENT_DIR]/00000001.app
+	stripncch $[CONTENT_DIR]/00000001.app $[WORKDIR]/00000001.app
+end
+
+if find G:/content2.dlp.app CONTENT2_PATH
+	if not decrypt -o $[CONTENT2_PATH] $[CONTENT_DIR]/00000002.app
+		goto CopyFail
+	end
+	setsdapp $[CONTENT_DIR]/00000002.app
+	stripncch $[CONTENT_DIR]/00000002.app $[WORKDIR]/00000002.app
+end
+
+mkdir $[CONTENT_DIR]/cmd
+buildmds -t -c $[CONTENT_DIR]
+buildmds -t $[WORKDIR]
+
+find $[WORKDIR]/*.tmd DUM_TMD_PATH
+mv $[GM9OUT] $[WORKDIR]/outbak
+buildcia $[DUM_TMD_PATH]
+find $[GM9OUT]/*.cia DUM_CIA_PATH
+mv $[DUM_CIA_PATH] $[WORKDIR]/$[TID_LOW].cia
+rm $[GM9OUT]
+mv $[WORKDIR]/outbak $[GM9OUT]
+
+for $[WORKDIR] *.app
+	rm $[FORPATH]
+next
+rm $[DUM_TMD_PATH]
+
+rm -o -s $[WORKDIR]/id0.txt
+dumptxt $[WORKDIR]/id0.txt $[SYSID0]
+
+if exist 0:/boot.3dsx
+	mv 0:/boot.3dsx $[WORKDIR]/boot.3dsx.bak
+end
+cp $[HB_APP_PATH] 0:/boot.3dsx
+
+cp $[CONFIG_PATH] $[WORKDIR]/config.bin.bak
+fset $[CONFIG_PATH]@14:8 $[R_HOME_MENU_TID]
+
+if ask "Done!\nThe installation will be finalized\nnext time you boot into luma.\nIf you would like to install another cart,\nplease insert it now and choose no.\nReboot now?"
+	reboot
+else
+	goto CartInstall
+end
