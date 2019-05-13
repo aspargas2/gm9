@@ -2654,7 +2654,7 @@ u32 StripNcch(const char* inpath, const char* outpath)
 {
 	FIL ncchSource, ncchDest;
 	u8* ncchBuff;
-	u32 exefsOffset, exefsOffsetMUnits;
+	u32 offset, offsetMUnits;
 	UINT brw;
 	
 	if (fvx_open(&ncchSource, inpath, FA_READ | FA_OPEN_EXISTING) != FR_OK)
@@ -2670,35 +2670,56 @@ u32 StripNcch(const char* inpath, const char* outpath)
 		return 1;
 	}
 	
-	if ((fvx_read(&ncchSource, &exefsOffsetMUnits, 4, &brw) != FR_OK) || (brw != 4))
+	if ((fvx_read(&ncchSource, &offsetMUnits, 4, &brw) != FR_OK) || (brw != 4))
 	{
 		fvx_close(&ncchSource);
 		return 1;
 	}
 	
-	exefsOffset = exefsOffsetMUnits * NCCH_MEDIA_UNIT;
+	if (offsetMUnits == 0) // no exefs
+	{
+		if (fvx_lseek(&ncchSource, 0x1B0) != FR_OK)
+		{
+			ShowPrompt(false, "Seek to romFS offset fail");
+			fvx_close(&ncchSource);
+			return 1;
+		}
+		
+		if ((fvx_read(&ncchSource, &offsetMUnits, 4, &brw) != FR_OK) || (brw != 4))
+		{
+			fvx_close(&ncchSource);
+			return 1;
+		}
+		
+		if (offsetMUnits == 0) // no exefs or romfs
+		{
+			return 0;
+		}
+	}
+	
+	offset = offsetMUnits * NCCH_MEDIA_UNIT;
 	
 	fvx_lseek(&ncchSource, 0);
 	
-	ncchBuff = malloc(exefsOffset);
+	ncchBuff = malloc(offset);
 	if (!ncchBuff)
 	{
-		ShowPrompt(false, "malloc fail\nexefsOffsetMUnits: %d\nexefsOffset: %d", exefsOffsetMUnits, exefsOffset);
+		ShowPrompt(false, "malloc fail\noffsetMUnits: %d\noffset: %d", offsetMUnits, offset);
 		fvx_close(&ncchSource);
 		return 1;
 	}
 	
-	if ((fvx_read(&ncchSource, ncchBuff, exefsOffset, &brw) != FR_OK) || (brw != exefsOffset))
+	if ((fvx_read(&ncchSource, ncchBuff, offset, &brw) != FR_OK) || (brw != offset))
 	{
-		ShowPrompt(false, "Read up to exeFS fail.\nbrw was %d while exefsOffset was %d", brw, exefsOffset);
+		ShowPrompt(false, "Read up to exeFS fail.\nbrw was %d while offset was %d", brw, offset);
 		fvx_close(&ncchSource);
 		return 1;
 	}
 	
 	fvx_close(&ncchSource);
 	
-	memcpy(ncchBuff + 0x104, &exefsOffsetMUnits, 4);
-	memset(ncchBuff + 0x1A0, 0, 0x20);
+	memcpy(ncchBuff + 0x104, &offsetMUnits, 4);
+	memset(ncchBuff + 0x1A0, 0, 0x20); // 0 out exefs and romfs size and offset regions
 	
 	if (fvx_open(&ncchDest, outpath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
 	{
@@ -2706,7 +2727,7 @@ u32 StripNcch(const char* inpath, const char* outpath)
 		return 1;
 	}
 	
-	if ((fvx_write(&ncchDest, (const void*)ncchBuff, exefsOffset, &brw) != FR_OK) || (brw != exefsOffset))
+	if ((fvx_write(&ncchDest, (const void*)ncchBuff, offset, &brw) != FR_OK) || (brw != offset))
 	{
 		ShowPrompt(false, "Write stripped ncch fail");
 		fvx_close(&ncchDest);
@@ -2747,8 +2768,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 	while ((fvx_preaddir(&dp, &fno, "*.app") == FR_OK) && *(fno.fname))
 	{
 		//ShowPrompt(false, "Filename:\n%s", fno.fname);
-		memcpy(contents[strtol(fno.fname, NULL, 16)], fno.fname, 8);
-		contentCount++;
+		memcpy(contents[contentCount++], fno.fname, 8);
 	}
 		
 	
@@ -2879,10 +2899,10 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 				return 1;
 			}
 			memset(&(cmacMessageField[0x100]), 0, 8);
-			cmacMessageField[0x100] = (u8)i;
-			cmacMessageField[0x104] = (u8)i;
+			cmacMessageField[0x100] = (u8)var;
+			cmacMessageField[0x104] = (u8)var;
 			sha_quick(shaBuf, cmacMessageField, 0x108, SHA256_MODE);
-			//ShowPrompt(false, "content%d hash:\n%X", i, *shaBuf);
+			//ShowPrompt(false, "content%d hash:\n%X", var, *shaBuf);
 			if (SetupSlot0x30(*path) != 0)
 			{
 				ShowPrompt(false, "0x30 fail!");
