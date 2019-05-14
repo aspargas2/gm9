@@ -2820,10 +2820,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
 			
 			memset(tcc.size, 0, 4);
 			memset(tcc.type, 0, 2);
-			memset(myPath, 0, 256);
-			strcpy(myPath, path);
-			strcat(myPath, "/");
-			strcat(myPath, contents[i]);
+			sprintf(myPath, "%s/%s", path, contents[i]);
 			u32 size = fvx_qsize(strcat(myPath, ".app"));
 			size = getbe32((u8*)&size);
 			memcpy(tcc.size + 4, &size, 4);
