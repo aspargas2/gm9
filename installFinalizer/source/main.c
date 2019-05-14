@@ -313,21 +313,14 @@ int main()
 	
     closedir(dir);
 	
-	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/delme", id0, id1);
 	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
-	if (rename(path2, path) != 0)
-	{
-		perror("rename 2 fail!");
-		reboot(true);
-		return 1;
-	}
 	
-	recursiveDelDir(path);
+	recursiveDelDir(path2);
 	
 	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title0", id0, id1);
 	if (rename(path, path2) != 0)
 	{
-		perror("rename 3 fail!");
+		perror("rename 2 fail!");
 		reboot(true);
 		return 1;
 	}
