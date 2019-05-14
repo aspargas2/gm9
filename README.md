@@ -4,6 +4,7 @@ An uncreatively named __[GodMode9](https://github.com/d0k3/GodMode9)__ fork for 
 ## General Info
 As stated above, this is merely a fork of [GodMode9](https://github.com/d0k3/GodMode9). I played no part in the creation of any of GodMode9.
 Installing cartridges to the SD this way bypasses the need to have 2 times as much space free as the game actually takes, and takes about 35% less time than the traditional method of converting the cartridge image to a cia, then installing that with FBI.
+The only known drawback to installing cartridges this way is that the resulting installed titles will show as taking significantly less space on the SD in data management or FBI than they actually do.
 This tool is very far from being thouroughly tested, so if you encounter any problems, please submit them to the issue tracker.
 
 ## Usage
