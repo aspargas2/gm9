@@ -115,8 +115,8 @@ Result installSdCia(const char* path)
 		return rc;
 	}
 	
-	if (R_FAILED(rc = AM_DeleteAppTitle(MEDIATYPE_SD, title.titleID))) {
-		printf("AM_DeleteAppTitle: %08lX\n", rc);
+	if (R_FAILED(rc = AM_DeleteAppTitle(MEDIATYPE_SD, title.titleID))) { 
+		printf("AM_DeleteAppTitle: %08lX\n", rc); // Failing here is fine, as the app will not already be installed in most cases
 	}
 	
 	if (R_FAILED(rc = FSFILE_GetSize(src_handle, &size))) {
