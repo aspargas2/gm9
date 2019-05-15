@@ -8,12 +8,13 @@ The only known drawback to installing cartridges this way is that the resulting 
 This tool is very far from being thouroughly tested, so if you encounter any problems, please submit them to the issue tracker.
 
 ## Usage
-Download `cartInstall.firm` from the [releases page](https://github.com/aspargas2/cartInstall/releases) and run it with the chainloader of your choice.
+Download `cartInstall.firm` from the [releases page](https://github.com/aspargas2/CartInstall/releases) and run it with the chainloader of your choice.
 Installation will not be finalized until you boot into a luma version that includes rosalina.
 If you reset luma's `config.bin` before booting into luma version that includes rosalina, the installation will not be finalized automatically. If you have accidentally done this, attempting to open the homebrew launcher through rosalina should finalize the installation and reboot.
 Leaving an installation unfinalized means the game will take up space on your sd, but the 3ds will not think it is installed.
 
-This tool currently only works with sysnand.
+This tool currently only officially works with sysnand. Booting into an unlinked emunand directly after running this tool will abort the install finalizer, and installation will be left unfinalized. Simply dumping the game again then booting into sysnand should clean this up.
+A linked emunand should work fine, but this has not been tested.
 
 If you somehow manage to install this tool to your firm0, you should first give yourself a solid facepalm. Then put [safeb9sinstaller](https://github.com/d0k3/safeb9sinstaller/releases)'s `.firm` on the sd root as `iderped.firm` and [boot9strap](https://github.com/SciresM/boot9strap/releases)'s `boot9strap.firm` and `boot9strap.firm.sha` in a `boot9strap` folder on the sd root, and boot the console. You should be in safeb9sinstaller, you doofus.
 
