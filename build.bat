@@ -1,4 +1,5 @@
 make clean
+rm data/installFinalizer.3dsx
 cd installFinalizer
 make clean
 make
