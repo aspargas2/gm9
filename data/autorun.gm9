@@ -38,6 +38,8 @@ if isdir 4:
 	else
 		if not ask "Unlinked EmuNAND and SysNAND detected!\nGamedata will be installed to Sysnand.\nYou must boot into SysNAND after running this app,\nor things will go badly!!\nDo you understand what this message\nmeans and are sure you will boot into SysNAND next?"
 			poweroff
+		end
+	end
 end
 
 if not find 0:/luma/config.bin CONFIG_PATH
