@@ -201,7 +201,7 @@ int main()
 	rename("sdmc:/cartInstall/boot.3dsx.bak", "sdmc:/boot.3dsx");
 	
 	FSUSER_GetSdmcCtrRootPath((u8*)rootPath16, 0x80 * 2);
-	utf16_to_utf8(rootPath, rootPath16, 0x80);
+	utf16_to_utf8((u8*)rootPath, rootPath16, 0x80);
 	
 	if (!(file = fopen("sdmc:/cartInstall/id0.txt", "r")))
 	{
