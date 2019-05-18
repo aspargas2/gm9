@@ -184,9 +184,8 @@ int main()
 	//Result rc;
 	FILE* file;
 	DIR* dir;
-	char path[300], path2[300];
-	char id0[33] = { '\0' };
-	char id1[33] = { '\0' };
+	char path[300], path2[300], id0[33] = { '\0' }, rootPath[0x80];
+	u16 rootPath16[0x80];
 	struct dirent* de;
 	
 	if(R_FAILED(init()))
@@ -201,6 +200,9 @@ int main()
 	rename("sdmc:/cartInstallWorkDir/config.bin.bak", "sdmc:/luma/config.bin");
 	rename("sdmc:/cartInstallWorkDir/boot.3dsx.bak", "sdmc:/boot.3dsx");
 	
+	FSUSER_GetSdmcCtrRootPath((u8*)rootPath16, 0x80 * 2);
+	utf16_to_utf8(rootPath, rootPath16, 0x80);
+	
 	if (!(file = fopen("sdmc:/cartInstallWorkDir/id0.txt", "r")))
 	{
 		printf("Could not open id0.txt\n");
@@ -212,82 +214,35 @@ int main()
 	{
 		printf("Could not read id0.txt\n");
 		fclose(file);
+		remove("sdmc:/cartInstallWorkDir/id0.txt");
 		reboot(true);
 		return 1;
 	}
 	
 	fclose(file);
 	
-	sprintf(path, "sdmc:/Nintendo 3DS/%s", id0);
-	printf("id0: %s\n", id0);
-	if (!(dir = opendir(path)))
-    { 
-        printf("Could not open id0 dir\nattempted path: %s\n", path); 
-        reboot(true);
-		return 1;
-    }
-	
-	int c = 0;
-	while ((de = readdir(dir)) != NULL)
+	if (memcmp(id0, rootPath + 14, 32))
 	{
-		strcpy(id1, de->d_name);
-		c++;
-	}
-	
-	closedir(dir);
-	
-	if (c > 1)
-	{
-		printf("multiple id1 dirs. handling for this isn't implemented yet. go yell at asp.\n");
+		printf("ID0 mismatch. You probably booted to an EmuNAND. Aborting.\n");
 		reboot(true);
 		return 1;
-		/*u8 sdCid[16];
-		if (R_FAILED(rc = FSUSER_GetSdmcCid(sdCid, 0x10)))
-		{
-			printf("FSUSER_GetSdmcCid: %08lX\n", rc);
-			reboot(true);
-			return 1;
-		}
-		
-		u8 temp = sdCid[0];
-		for (int i = 0; i < 15; i++)
-		{
-			sdCid[i] = sdCid[i + 1];
-		}
-		sdCid[15] = temp;
-		
-		u16* sdCid16 = (u16*)sdCid;
-		u16 scrambledSdCid[8];
-		
-		scrambledSdCid[0] = sdCid16[6];
-		scrambledSdCid[1] = sdCid16[7];
-		scrambledSdCid[2] = sdCid16[4];
-		scrambledSdCid[3] = sdCid16[5];
-		scrambledSdCid[4] = sdCid16[2];
-		scrambledSdCid[5] = sdCid16[3];
-		scrambledSdCid[6] = sdCid16[0];
-		scrambledSdCid[7] = sdCid16[1];
-		
-		for (int i = 0; i < 8; i++)
-		{
-			sprintf(id1 + (4 * i), "%04X", sdCid16[i]);
-		}*/
 	}
 	
-	printf("id1: %s\n", id1);
-	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title0", id0, id1);
-	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
+	remove("sdmc:/cartInstallWorkDir/id0.txt");
+	
+	sprintf(path, "sdmc:%s/title0", rootPath);
+	sprintf(path2, "sdmc:%s/title", rootPath);
 	
 	if (rename(path2, path) != 0)
 	{
-		perror("rename fail!");
+		printf("rename fail!");
 		reboot(true);
 		return 1;
 	}
 	
     if (!(dir = opendir("sdmc:/cartInstallWorkDir")))
     { 
-        printf("could not open cartInstallWorkDir\n"); 
+        printf("could not open cartInstall dir\n"); 
         reboot(true);
 		return 1;
     } 
@@ -305,22 +260,22 @@ int main()
 			unlink(path);
 			char tidlow[9] = { '\0' };
 			memcpy(tidlow, de->d_name, 8);
-			sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title/00040000/%s/data", id0, id1, tidlow);
-			sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title0/00040000/%s/data", id0, id1, tidlow);
+			sprintf(path, "sdmc:%s/title/00040000/%s/data", rootPath, tidlow);
+			sprintf(path2, "sdmc:%s/title0/00040000/%s/data", rootPath, tidlow);
 			rename(path, path2);
 		}
 	}
 	
     closedir(dir);
 	
-	sprintf(path2, "sdmc:/Nintendo 3DS/%s/%s/title", id0, id1);
+	sprintf(path2, "sdmc:%s/title", rootPath);
 	
 	recursiveDelDir(path2);
 	
-	sprintf(path, "sdmc:/Nintendo 3DS/%s/%s/title0", id0, id1);
+	sprintf(path, "sdmc:%s/title0", rootPath);
 	if (rename(path, path2) != 0)
 	{
-		perror("rename 2 fail!");
+		printf("rename 2 fail!");
 		reboot(true);
 		return 1;
 	}
