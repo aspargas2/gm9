@@ -33,3 +33,4 @@ You may use this under the terms of the GNU General Public License GPL v2 or und
 * Everyone who contributed in any way to [GodMode9](https://github.com/d0k3/GodMode9), as this is just a fork of it
 * [3DBrew](https://www.3dbrew.org/wiki/Main_Page) and all its editors, for being an essential resource in making this tool
 * [@BpyH64](https://github.com/BpyH64) on GitHub for figuring out the CMACs on the `.cmd` files (this tool would not be possible without that discovery), and for the idea of creating dummy CIA files to get the correct entries into ticket.db and title.db
+* Everyone in crc on the Nintendo Homebrew Discord server who helped test this
