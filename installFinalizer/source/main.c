@@ -197,13 +197,13 @@ int main()
 	
 	remove("sdmc:/luma/config.bin");
 	remove("sdmc:/boot.3dsx");
-	rename("sdmc:/cartInstallWorkDir/config.bin.bak", "sdmc:/luma/config.bin");
-	rename("sdmc:/cartInstallWorkDir/boot.3dsx.bak", "sdmc:/boot.3dsx");
+	rename("sdmc:/cartInstall/config.bin.bak", "sdmc:/luma/config.bin");
+	rename("sdmc:/cartInstall/boot.3dsx.bak", "sdmc:/boot.3dsx");
 	
 	FSUSER_GetSdmcCtrRootPath((u8*)rootPath16, 0x80 * 2);
 	utf16_to_utf8(rootPath, rootPath16, 0x80);
 	
-	if (!(file = fopen("sdmc:/cartInstallWorkDir/id0.txt", "r")))
+	if (!(file = fopen("sdmc:/cartInstall/id0.txt", "r")))
 	{
 		printf("Could not open id0.txt\n");
 		reboot(true);
@@ -214,7 +214,7 @@ int main()
 	{
 		printf("Could not read id0.txt\n");
 		fclose(file);
-		remove("sdmc:/cartInstallWorkDir/id0.txt");
+		remove("sdmc:/cartInstall/id0.txt");
 		reboot(true);
 		return 1;
 	}
@@ -228,7 +228,7 @@ int main()
 		return 1;
 	}
 	
-	remove("sdmc:/cartInstallWorkDir/id0.txt");
+	remove("sdmc:/cartInstall/id0.txt");
 	
 	sprintf(path, "sdmc:%s/title0", rootPath);
 	sprintf(path2, "sdmc:%s/title", rootPath);
@@ -240,7 +240,7 @@ int main()
 		return 1;
 	}
 	
-    if (!(dir = opendir("sdmc:/cartInstallWorkDir")))
+    if (!(dir = opendir("sdmc:/cartInstall")))
     { 
         printf("could not open cartInstall dir\n"); 
         reboot(true);
@@ -251,7 +251,7 @@ int main()
 	{
 		if (strcmp(".cia", &(de->d_name[strlen(de->d_name) - 4])) == 0)
 		{
-			sprintf(path, "/cartInstallWorkDir/%s", de->d_name);
+			sprintf(path, "/cartInstall/%s", de->d_name);
 			if (R_FAILED(installSdCia(path)))
 			{
 				printf("installation failed, skipping save copy and cia delete\n");

@@ -84,10 +84,10 @@ if find A:/title/00040000/$[TID_LOW] TID_LOW_DIR
 	end
 end
 
-if not isdir 0:/cartInstallWorkDir
-	mkdir 0:/cartInstallWorkDir
+if not isdir 0:/cartInstall
+	mkdir 0:/cartInstall
 end
-set WORKDIR 0:/cartInstallWorkDir
+set WORKDIR 0:/cartInstall
 
 if not decrypt -o $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
 	@CopyFail
