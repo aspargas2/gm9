@@ -122,12 +122,12 @@ buildmds -t -c $[CONTENT_DIR]
 buildmds -t $[WORKDIR]
 
 find $[WORKDIR]/*.tmd DUM_TMD_PATH
-mv $[GM9OUT] $[WORKDIR]/outbak
+mv -o -s $[GM9OUT] $[WORKDIR]/outbak
 buildcia $[DUM_TMD_PATH]
 find $[GM9OUT]/*.cia DUM_CIA_PATH
 mv -w $[DUM_CIA_PATH] $[WORKDIR]/$[TID_LOW].cia
 rm $[GM9OUT]
-mv $[WORKDIR]/outbak $[GM9OUT]
+mv -o -s $[WORKDIR]/outbak $[GM9OUT]
 
 for $[WORKDIR] *.app
 	rm $[FORPATH]
