@@ -141,5 +141,4 @@ typedef struct {
 u32 GetDisaDiffReaderInfo(const char* path, DisaDiffReaderInfo* info, bool partitionB);
 u32 BuildDisaDiffDpfsLvl2Cache(const char* path, DisaDiffReaderInfo* info, u8* cache, u32 cache_size);
 u32 ReadDisaDiffIvfcLvl4(const char* path, DisaDiffReaderInfo* info, u32 offset, u32 size, void* buffer);
-u32 FixDisaDiffIvfcHashChain(const char* path, DisaDiffReaderInfo* info, u32 offset, u32 size);
 u32 WriteDisaDiffIvfcLvl4(const char* path, DisaDiffReaderInfo* info, u32 offset, u32 size, const void* buffer);

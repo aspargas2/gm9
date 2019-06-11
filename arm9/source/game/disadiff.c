@@ -443,12 +443,18 @@ u32 FixDisaDiffIvfcHashChain(const char* path, DisaDiffReaderInfo* info, u32 off
 		
 		if (info->ivfc_use_extlvl4 ? (DisaDiffRead(buf, lvl4_read_size, lvl4_offset + info->offset_ivfc_lvl4) != FR_OK) :
 			(ReadDisaDiffDpfsLvl3(info, lvl4_offset + info->offset_ivfc_lvl4, lvl4_read_size, buf) != lvl4_read_size))
+		{
+			free(buf);			
 			return 1;
+		}
 		
 		sha_quick(shabuf, buf, lvl4_block_size, SHA256_MODE);
 		
 		if (WriteDisaDiffDpfsLvl3(info, info->offset_ivfc_lvl3 + ((lvl4_offset >> info->log_ivfc_lvl4) * 0x20), 0x20, shabuf) != 0x20)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		lvl4_offset += lvl4_block_size;
 		lvl4_size = ((lvl4_size < lvl4_block_size) ? 0 : (lvl4_size - lvl4_block_size));
@@ -471,12 +477,18 @@ u32 FixDisaDiffIvfcHashChain(const char* path, DisaDiffReaderInfo* info, u32 off
 		}
 		
 		if (ReadDisaDiffDpfsLvl3(info, lvl3_offset + info->offset_ivfc_lvl3, lvl3_read_size, buf) != lvl3_read_size)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		sha_quick(shabuf, buf, lvl3_block_size, SHA256_MODE);
 		
 		if (WriteDisaDiffDpfsLvl3(info, info->offset_ivfc_lvl2 + ((lvl3_offset >> info->log_ivfc_lvl3) * 0x20), 0x20, shabuf) != 0x20)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		lvl3_offset += lvl3_block_size;
 		lvl3_size = ((lvl3_size < lvl3_block_size) ? 0 : (lvl3_size - lvl3_block_size));
@@ -499,12 +511,18 @@ u32 FixDisaDiffIvfcHashChain(const char* path, DisaDiffReaderInfo* info, u32 off
 		//ShowPrompt(false, "lvl2 loop.\nlvl2_offset is 0x%X\nlvl2_size is 0x%X\nlvl2_block_size is 0x%X\nlvl2_read_size is 0x%X", lvl2_offset, lvl2_size, lvl2_block_size, lvl2_read_size);
 		
 		if (ReadDisaDiffDpfsLvl3(info, lvl2_offset + info->offset_ivfc_lvl2, lvl2_read_size, buf) != lvl2_read_size)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		sha_quick(shabuf, buf, lvl2_block_size, SHA256_MODE);
 		
 		if (WriteDisaDiffDpfsLvl3(info, info->offset_ivfc_lvl1 + ((lvl2_offset >> info->log_ivfc_lvl2) * 0x20), 0x20, shabuf) != 0x20)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		lvl2_offset += lvl2_block_size;
 		lvl2_size = ((lvl2_size < lvl2_block_size) ? 0 : (lvl2_size - lvl2_block_size));
@@ -527,12 +545,18 @@ u32 FixDisaDiffIvfcHashChain(const char* path, DisaDiffReaderInfo* info, u32 off
 		//ShowPrompt(false, "lvl1 loop.\nlvl1_offset is 0x%X\nlvl1_size is 0x%X\nlvl1_block_size is 0x%X\nlvl1_read_size is 0x%X", lvl1_offset, lvl1_size, lvl1_block_size, lvl1_read_size);
 		
 		if (ReadDisaDiffDpfsLvl3(info, lvl1_offset + info->offset_ivfc_lvl1, lvl1_read_size, buf) != lvl1_read_size)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		sha_quick(shabuf, buf, lvl1_block_size, SHA256_MODE);
 		
 		if (DisaDiffWrite(shabuf, 0x20, info->offset_difi + info->offset_master_hash + ((lvl1_offset >> info->log_ivfc_lvl1) * 0x20)) != FR_OK)
+		{
+			free(buf);
 			return 1;
+		}
 		
 		lvl1_offset += lvl1_block_size;
 		lvl1_size = ((lvl1_size < lvl1_block_size) ? 0 : (lvl1_size - lvl1_block_size));
@@ -545,7 +569,10 @@ u32 FixDisaDiffIvfcHashChain(const char* path, DisaDiffReaderInfo* info, u32 off
 		return 1;
 	
 	if (DisaDiffRead(buf, info->offset_master_hash + info->size_master_hash, info->offset_difi) != FR_OK)
+	{
+		free(buf);
 		return 1;
+	}
 	
 	sha_quick(shabuf, buf, info->offset_master_hash + info->size_master_hash, SHA256_MODE);
 	
