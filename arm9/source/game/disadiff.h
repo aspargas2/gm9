@@ -109,10 +109,10 @@ typedef struct {
 
 // condensed info to enable reading/writing IVFC lvl4
 typedef struct {
-	u32 offset_partition_hash;
-	u32 offset_difi;
-	u32 offset_master_hash; // relative to start of difi
-	u32 size_master_hash;
+    u32 offset_partition_hash;
+    u32 offset_difi;
+    u32 offset_master_hash; // relative to start of difi
+    u32 size_master_hash;
     u32 offset_dpfs_lvl1; // relative to start of file
     u32 offset_dpfs_lvl2; // relative to start of file
     u32 offset_dpfs_lvl3; // relative to start of file

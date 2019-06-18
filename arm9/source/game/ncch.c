@@ -360,13 +360,13 @@ u32 SetNcchSdFlag(void* data) { // data must be at least 0x600 byte and start wi
 }
 
 u32 SetNcchFileSdFlag(const char* path) {
-	u8 data[0x600];
-	UINT brw;
-	
-	if ((fvx_qread(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600) ||
-		(SetNcchSdFlag((void*)data) != 0) ||
-		(fvx_qwrite(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600))
-		return 1;
-	
-	return 0;
+    u8 data[0x600];
+    UINT brw;
+    
+    if ((fvx_qread(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600) ||
+        (SetNcchSdFlag((void*)data) != 0) ||
+        (fvx_qwrite(path, data, 0, 0x600, &brw) != FR_OK) || (brw != 0x600))
+        return 1;
+    
+    return 0;
 }

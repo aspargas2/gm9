@@ -109,9 +109,9 @@ typedef enum {
     CMD_ID_DECRYPT,
     CMD_ID_ENCRYPT,
     CMD_ID_BUILDCIA,
-	CMD_ID_BUILDMDS,
-	CMD_ID_STRIPAPP,
-	CMD_ID_SETSDAPP,
+    CMD_ID_BUILDMDS,
+    CMD_ID_STRIPAPP,
+    CMD_ID_SETSDAPP,
     CMD_ID_EXTRCODE,
     CMD_ID_CMPRCODE,
     CMD_ID_SDUMP,
@@ -185,9 +185,9 @@ Gm9ScriptCmd cmd_list[] = {
     { CMD_ID_DECRYPT , "decrypt" , 2, 0 },
     { CMD_ID_ENCRYPT , "encrypt" , 1, 0 },
     { CMD_ID_BUILDCIA, "buildcia", 1, _FLG('l') },
-	{ CMD_ID_BUILDMDS, "buildmds", 1, _FLG('t') | _FLG('c') },
-	{ CMD_ID_STRIPAPP, "stripapp", 2, 0 },
-	{ CMD_ID_SETSDAPP, "setsdapp", 1, 0 },
+    { CMD_ID_BUILDMDS, "buildmds", 1, _FLG('t') | _FLG('c') },
+    { CMD_ID_STRIPAPP, "stripapp", 2, 0 },
+    { CMD_ID_SETSDAPP, "setsdapp", 1, 0 },
     { CMD_ID_EXTRCODE, "extrcode", 2, 0 },
     { CMD_ID_CMPRCODE, "cmprcode", 2, 0 },
     { CMD_ID_SDUMP   , "sdump",    1, _FLG('w') },
@@ -1321,18 +1321,18 @@ bool run_cmd(cmd_id id, u32 flags, char** argv, char* err_str) {
         ret = (BuildCiaFromGameFile(argv[0], (flags & _FLG('n'))) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "build CIA failed");
     }
-	else if (id == CMD_ID_BUILDMDS) {
-		ret = (BuildCmdTmdFromSDDir(argv[0], flags & _FLG('c'), flags & _FLG('t')) == 0);
+    else if (id == CMD_ID_BUILDMDS) {
+        ret = (BuildCmdTmdFromSDDir(argv[0], flags & _FLG('c'), flags & _FLG('t')) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "build MetaData failed");
-	}
-	else if (id == CMD_ID_STRIPAPP) {
-		ret = (StripNcch(argv[0], argv[1]) == 0);
+    }
+    else if (id == CMD_ID_STRIPAPP) {
+        ret = (StripNcch(argv[0], argv[1]) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "strip NCCH failed");
-	}
-	else if (id == CMD_ID_SETSDAPP) {
-		ret = (SetNcchFileSdFlag(argv[0]) == 0);
-		if (err_str) snprintf(err_str, _ERR_STR_LEN, "set SD app flag failed");
-	}
+    }
+    else if (id == CMD_ID_SETSDAPP) {
+        ret = (SetNcchFileSdFlag(argv[0]) == 0);
+        if (err_str) snprintf(err_str, _ERR_STR_LEN, "set SD app flag failed");
+    }
     else if (id == CMD_ID_EXTRCODE) {
         u64 filetype = IdentifyFileType(argv[0]);
         if (!FTYPE_HASCODE(filetype)) {
