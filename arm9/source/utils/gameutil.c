@@ -2650,49 +2650,41 @@ u32 GetGoodName(char* name, const char* path, bool quick) {
 }
 
 // Removes the exefs and romfs from an ncch
-u32 StripNcch(const char* inpath, const char* outpath)
-{
+u32 StripNcch(const char* inpath, const char* outpath) {
     FIL ncchSource, ncchDest;
     u8* ncchBuff;
     u32 offset, offsetMUnits;
     UINT brw;
     
-    if (fvx_open(&ncchSource, inpath, FA_READ | FA_OPEN_EXISTING) != FR_OK)
-    {
+    if (fvx_open(&ncchSource, inpath, FA_READ | FA_OPEN_EXISTING) != FR_OK) {
         ShowPrompt(false, "Open source ncch fail");
         return 1;
     }
     
-    if (fvx_lseek(&ncchSource, 0x1A0) != FR_OK)
-    {
+    if (fvx_lseek(&ncchSource, 0x1A0) != FR_OK) {
         ShowPrompt(false, "Seek to exeFS offset fail");
         fvx_close(&ncchSource);
         return 1;
     }
     
-    if ((fvx_read(&ncchSource, &offsetMUnits, 4, &brw) != FR_OK) || (brw != 4))
-    {
+    if ((fvx_read(&ncchSource, &offsetMUnits, 4, &brw) != FR_OK) || (brw != 4)) {
         fvx_close(&ncchSource);
         return 1;
     }
     
-    if (offsetMUnits == 0) // no exefs
-    {
-        if (fvx_lseek(&ncchSource, 0x1B0) != FR_OK)
-        {
+    if (offsetMUnits == 0) { // no exefs
+        if (fvx_lseek(&ncchSource, 0x1B0) != FR_OK) {
             ShowPrompt(false, "Seek to romFS offset fail");
             fvx_close(&ncchSource);
             return 1;
         }
         
-        if ((fvx_read(&ncchSource, &offsetMUnits, 4, &brw) != FR_OK) || (brw != 4))
-        {
+        if ((fvx_read(&ncchSource, &offsetMUnits, 4, &brw) != FR_OK) || (brw != 4)) {
             fvx_close(&ncchSource);
             return 1;
         }
         
-        if (offsetMUnits == 0) // no exefs or romfs
-        {
+        if (offsetMUnits == 0) { // no exefs or romfs
             return 0;
         }
     }
@@ -2702,15 +2694,13 @@ u32 StripNcch(const char* inpath, const char* outpath)
     fvx_lseek(&ncchSource, 0);
     
     ncchBuff = malloc(offset);
-    if (!ncchBuff)
-    {
+    if (!ncchBuff) {
         ShowPrompt(false, "malloc fail\noffsetMUnits: %d\noffset: %d", offsetMUnits, offset);
         fvx_close(&ncchSource);
         return 1;
     }
     
-    if ((fvx_read(&ncchSource, ncchBuff, offset, &brw) != FR_OK) || (brw != offset))
-    {
+    if ((fvx_read(&ncchSource, ncchBuff, offset, &brw) != FR_OK) || (brw != offset)) {
         ShowPrompt(false, "Read up to exeFS fail.\nbrw was %d while offset was %d", brw, offset);
         fvx_close(&ncchSource);
         return 1;
@@ -2721,14 +2711,12 @@ u32 StripNcch(const char* inpath, const char* outpath)
     memcpy(ncchBuff + 0x104, &offsetMUnits, 4);
     memset(ncchBuff + 0x1A0, 0, 0x20); // 0 out exefs and romfs size and offset regions
     
-    if (fvx_open(&ncchDest, outpath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
-    {
+    if (fvx_open(&ncchDest, outpath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
         ShowPrompt(false, "Open dest ncch fail");
         return 1;
     }
     
-    if ((fvx_write(&ncchDest, (const void*)ncchBuff, offset, &brw) != FR_OK) || (brw != offset))
-    {
+    if ((fvx_write(&ncchDest, (const void*)ncchBuff, offset, &brw) != FR_OK) || (brw != offset)) {
         ShowPrompt(false, "Write stripped ncch fail");
         fvx_close(&ncchDest);
         return 1;
@@ -2740,9 +2728,8 @@ u32 StripNcch(const char* inpath, const char* outpath)
 }
 
 // TODO: rewrite this to be less sloppy, and make less assumtions
-// currently wouldn't work correctly for dlc or homebrew apps, and assumes cmd dir already exists
-u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
-{
+// currently wouldn't work correctly for dlc or homebrew apps, and assumes cmd dir already exists, and is just major crapcode in general
+u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
     NcchExtHeader exthdr;
     NcchHeader ncch;
     u8 title_id[8];
@@ -2753,31 +2740,27 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
     TmdContentChunk* contentList;
     TmdContentChunk tcc;
     FILINFO fno;
-    DIR dp;
+    DIR dir;
     char contents[9][9] = {{ '\0' }};
     u8 contentCount = 0;
     u8* cmd;
     UINT brw;
     
-    if (fvx_opendir(&dp, path) != FR_OK)
-    {
+    if (fvx_opendir(&dir, path) != FR_OK) {
         ShowPrompt(false, "opendir fail!");
         return 1;
     }
     
-    while ((fvx_preaddir(&dp, &fno, "*.app") == FR_OK) && *(fno.fname))
-    {
-        //ShowPrompt(false, "Filename:\n%s", fno.fname);
+    while ((fvx_preaddir(&dir, &fno, "*.app") == FR_OK) && *(fno.fname)) {
         memcpy(contents[contentCount++], fno.fname, 8);
     }
-        
     
-    if (doTmd)
-    {
+    fvx_closedir(&dir);
+    
+    if (doTmd) {
         const UINT tmdSize = sizeof(TitleMetaData) + (contentCount * sizeof(TmdContentChunk));
-        tmd = (TitleMetaData*) malloc(tmdSize);
-        if (!tmd)
-        {
+        
+        if (!(tmd = malloc(tmdSize))) {
             ShowPrompt(false, "tmd malloc fail!");
             return 1;
         }
@@ -2792,64 +2775,54 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
             ShowPrompt(false, "Load content0 fail!");
             return 1;
         }
-        for (u32 i = 0; i < 8; i++)
-        {
+        
+        for (u32 i = 0; i < 8; i++) {
             title_id[i] = (ncch.programId >> ((7-i)*8)) & 0xFF;
         }
         
-        if (BuildFakeTmd(tmd, title_id, contentCount, saveSize, 0))
-        {
+        if (BuildFakeTmd(tmd, title_id, contentCount, saveSize, 0)) {
             free(tmd);
             return 1;
         }
         
-        contentList = (TmdContentChunk*) (tmd + 1);
+        contentList = (TmdContentChunk*) &(tmd[1]);
         
         char buf[3] = { '\0' };
-        for (u8 i = 0; i < contentCount; i++)
-        {
-            //ShowPrompt(false, "content:\n%s", contents[i]);
-            for (u8 j = 0; j < 8; j += 2)
-            {
+        for (u8 i = 0; i < contentCount; i++) {
+            
+            for (u8 j = 0; j < 8; j += 2) {
                 memcpy(buf, contents[i] + j, 2);
                 tcc.id[j / 2] = (u8) strtol(buf, NULL, 16);
                 if (j > 2)
                     tcc.index[(j / 2) - 2] = (u8) strtol(buf, NULL, 16);
-                //ShowPrompt(false, "j = %x\ntcc.id[j/2] = %x\nbuf = %s", j, tcc.id[j/2]), buf;
             }
             
             memset(tcc.size, 0, 4);
             memset(tcc.type, 0, 2);
-            sprintf(myPath, "%s/%s", path, contents[i]);
-            u32 size = fvx_qsize(strcat(myPath, ".app"));
-            size = getbe32((u8*)&size);
-            memcpy(tcc.size + 4, &size, 4);
-            //ShowPrompt(false, "Path:\n%s", myPath);
-            if (!FileGetSha256(myPath, tcc.hash, 0, 0))
-            {
-                ShowPrompt(false, "GetSha fail!");
+            sprintf(myPath, "%s/%s.app", path, contents[i]);
+            u64 size = fvx_qsize(myPath));
+            size = getbe64((u8*)&size);
+            memcpy(tcc.size, &size, 8);
+            
+            if (!FileGetSha256(myPath, tcc.hash, 0, 0)) {
                 free(tmd);
                 return 1;
             }
             contentList[i] = tcc;
         }
         
-        if (FixTmdHashes(tmd))
-        {
+        if (FixTmdHashes(tmd)) {
             free(tmd);
             return 1;
         }
         
         sprintf(myPath, "%s/00000000.tmd", path);
-        if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
-        {
+        if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
             free(tmd);
             return 1;
         }
         
-        if ((fvx_write(&mdFile, tmd, tmdSize, &brw) != FR_OK) || (brw != tmdSize))
-        {
-            ShowPrompt(false, "write tmd fail!");
+        if ((fvx_write(&mdFile, tmd, tmdSize, &brw) != FR_OK) || (brw != tmdSize)) {
             free(tmd);
             fvx_close(&mdFile);
             return 1;
@@ -2859,21 +2832,16 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
         free(tmd);
     }
     
-    if (doCmd)
-    {
+    if (doCmd) {
+        u32 cmdSize = 0x20 + (0x18 * contentCount);
     
-        if (SetupSlot0x30(*path) != 0)
-        {
+        if (SetupSlot0x30(*path) != 0) {
             ShowPrompt(false, "0x30 fail!");
             return 1;
         }
         
-        cmd = malloc(0x20 + (0x18 * contentCount));
-        if (!cmd)
-        {
-            ShowPrompt(false, "cmd malloc fail!");
+        if (!(cmd = malloc(cmdSize))
             return 1;
-        }
         
         memset(cmd, 0, 0x10);
         memset(cmd + 0x0, 1, 1);
@@ -2885,13 +2853,11 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
         u32 var;
         u8 cmacMessageField[0x108];
         u8 shaBuf[0x20];
-        for (u32 i = 0; i < contentCount; i++)
-        {
+        for (u32 i = 0; i < contentCount; i++) {
             var = (u32)strtol(contents[i], NULL, 16);
             memcpy(cmd + 0x20 + (i * 4), &var, 4);
             sprintf(myPath, "%s/%s.app", path, contents[i]);
-            if ((fvx_qread(myPath, cmacMessageField, 0x100, 0x100, &brw) != FR_OK) || (brw != 0x100))
-            {
+            if ((fvx_qread(myPath, cmacMessageField, 0x100, 0x100, &brw) != FR_OK) || (brw != 0x100)) {
                 free(cmd);
                 return 1;
             }
@@ -2899,9 +2865,8 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
             cmacMessageField[0x100] = (u8)var;
             cmacMessageField[0x104] = (u8)var;
             sha_quick(shaBuf, cmacMessageField, 0x108, SHA256_MODE);
-            //ShowPrompt(false, "content%d hash:\n%X", var, *shaBuf);
-            if (SetupSlot0x30(*path) != 0)
-            {
+            
+            if (SetupSlot0x30(*path) != 0) {
                 ShowPrompt(false, "0x30 fail!");
                 return 1;
             }
@@ -2911,15 +2876,12 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd)
         
         sprintf(myPath, "%s/cmd/00000001.cmd", path);
         //ShowPrompt(false, "cmd path:\n%s", myPath);
-        if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
-        {
+        if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
             free(cmd);
             return 1;
         }
-        u32 cmdSize = 0x20 + (0x18 * contentCount);
-        if ((fvx_write(&mdFile, cmd, cmdSize, &brw) != FR_OK) || (brw != cmdSize))
-        {
-            ShowPrompt(false, "write cmd fail!");
+        
+        if ((fvx_write(&mdFile, cmd, cmdSize, &brw) != FR_OK) || (brw != cmdSize)) {
             free(cmd);
             fvx_close(&mdFile);
             return 1;
