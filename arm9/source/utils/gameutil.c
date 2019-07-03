@@ -1846,9 +1846,9 @@ u32 ExtractDataFromDisaDiff(const char* path) {
     if (!CheckWritePermissions(dest)) return 1;
     
     // prepare DISA / DIFF read
-    DisaDiffReaderInfo info;
+    DisaDiffRWInfo info;
     u8* lvl2_cache = NULL;
-    if ((GetDisaDiffReaderInfo(path, &info, false) != 0) ||
+    if ((GetDisaDiffRWInfo(path, &info, false) != 0) ||
         !(lvl2_cache = (u8*) malloc(info.size_dpfs_lvl2)) ||
         (BuildDisaDiffDpfsLvl2Cache(path, &info, lvl2_cache, info.size_dpfs_lvl2) != 0)) {
         if (lvl2_cache) free(lvl2_cache);
@@ -2800,7 +2800,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
             memset(tcc.size, 0, 4);
             memset(tcc.type, 0, 2);
             sprintf(myPath, "%s/%s.app", path, contents[i]);
-            u64 size = fvx_qsize(myPath));
+            u64 size = fvx_qsize(myPath);
             size = getbe64((u8*)&size);
             memcpy(tcc.size, &size, 8);
             
@@ -2840,7 +2840,7 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
             return 1;
         }
         
-        if (!(cmd = malloc(cmdSize))
+        if (!(cmd = malloc(cmdSize)))
             return 1;
         
         memset(cmd, 0, 0x10);
@@ -2875,7 +2875,6 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
         memcpy(cmd + 0x20 + (contentCount * 4), cmd + 0x20, contentCount * 4);
         
         sprintf(myPath, "%s/cmd/00000001.cmd", path);
-        //ShowPrompt(false, "cmd path:\n%s", myPath);
         if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
             free(cmd);
             return 1;
