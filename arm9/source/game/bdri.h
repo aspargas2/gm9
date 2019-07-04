@@ -3,6 +3,9 @@
 #include "common.h"
 #include "ticket.h"
 
+// There's probably a better place to put this
+#define SD_TITLEDB_PATH(emu) ((emu) ? "B:/dbs/title.db" : "A:/dbs/title.db")
+
 // https://www.3dbrew.org/wiki/Inner_FAT
 // https://www.3dbrew.org/wiki/Title_Database
 
@@ -71,7 +74,7 @@ typedef struct {
 
 typedef struct {
     u64 title_size; // in bytes
-    u32 title_type; // usually (assuming always) == 0x40
+    u32 title_type; // usually == 0x40
     u32 title_version;
     u8 flags_0[4];
     u32 tmd_content_id;
