@@ -32,16 +32,6 @@ if not isdir A:
 	poweroff
 end
 
-if isdir 4:
-	if chk $[SYSID0] $[EMUID0}
-		echo "Linked EmuNAND and SysNAND detected.\nGamedata will be installed for both, and faketik will need to be run\non whichever NAND you don't boot into next."
-	else
-		if not ask "Unlinked EmuNAND and SysNAND detected!\nGamedata will be installed to SysNAND.\nYou must boot into SysNAND after running this app,\nor things will go badly!!\nDo you understand what this message\nmeans and are sure you will boot into SysNAND next?"
-			poweroff
-		end
-	end
-end
-
 if not find 0:/luma/config.bin CONFIG_PATH
 	echo "Luma config file does not exist on SD.\nPlease boot into luma 8.0+ with this SD once.\nThe system will now power off."
 	poweroff
