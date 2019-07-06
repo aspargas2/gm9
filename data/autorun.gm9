@@ -1,6 +1,9 @@
 # set PREVIEW_MODE NONE
-textview V:/README_internal.md
 
+if ask "Would you like to view the readme?"
+    textview V:/README_internal.md
+end
+    
 @CartInstall
 if not find C:/*.trim.3ds ROM_PATH
 	if ask "Unable to detect 3DS cartridge.\n \nTry again?\nChoosing no will power off."
