@@ -1,17 +1,21 @@
+# set PREVIEW_MODE NONE
 textview V:/README_internal.md
 
 @CartInstall
 if not find C:/*.trim.3ds ROM_PATH
-	if ask "Unable to detect 3DS cartridge.\n\nTry again?\n(Choosing no will power off.)"
+	if ask "Unable to detect 3DS cartridge.\n \nTry again?\nChoosing no will power off."
 		goto CartInstall
 	else
 		poweroff
 	end
 end
 
-imgmount $[ROM_PATH]
+if not imgmount $[ROM_PATH]
+    echo "Unable to mount cartridge image.\nThis should not happen.\nYour cartridge may be corrupted.\nThe system will now power off."
+end
+
 if not find G:/content0.game.app CONTENT0_PATH
-	echo "Cartridge image detected, but unable to find content0.\nThis should not happen.\nThe system will now power off."
+	echo "Cartridge image mounted, but unable to find content0.\nThis should not happen.\nYour cartridge may be corrupted.\nThe system will now power off."
 	poweroff
 end
 
@@ -20,43 +24,21 @@ fget -e $[CONTENT0_PATH]@118:4 TID_LOW
 
 @SDCheck
 if not isdir 0:
-	if ask "Could not detect SD card.\n\nTry again?\n(Choosing no will power off.)"
+	if ask "Could not detect SD card.\n \nTry again?\nChoosing no will power off."
 		goto SDCheck
 	else
 		poweroff
 	end
 end
 
-if not isdir A:
-	echo "Virtual mount of SD data does not exist.\nThis can happen if the normal 3DS OS has never been booted on this system with this SD.\nThe system will now power off."
+if not find A:/dbs/title.db TITLEDB
+	echo "title.db in virtual SD data mount does not exist.\nPlease open the eShop or install any SD title,\nthen run CartInstall again."
 	poweroff
 end
 
-if not find 0:/luma/config.bin CONFIG_PATH
-	echo "Luma config file does not exist on SD.\nPlease boot into luma 8.0+ with this SD once.\nThe system will now power off."
-	poweroff
-end
-
-if not find V:/installFinalizer.3dsx HB_APP_PATH
-	echo "3DSX app does not exist in VRAM mount.\nThis can only happen if this script is running outside the intended context.\nThe system will now power off."
-	poweroff
-end
-
-if	 chk $[REGION] "USA"
-	set R_HOME_MENU_TID 028F000030000400
-elif chk $[REGION] "EUR"
-	set R_HOME_MENU_TID 0298000030000400
-elif chk $[REGION] "JPN"
-	set R_HOME_MENU_TID 0282000030000400
-elif chk $[REGION] "KOR"
-	set R_HOME_MENU_TID 02A9000030000400
-elif chk $[REGION] "CHN"
-	set R_HOME_MENU_TID 02A1000030000400
-elif chk $[REGION] "TWN"
-	set R_HOME_MENU_TID 02B1000030000400
-else
-	echo "Unable to detect system region.\nThis should not happen.\nThe system will now power off."
-	poweroff
+if not find 1:/dbs/ticket.db TICKDB
+    echo "ticket.db in CTRNAND does not exist.\nThis should not happen.\nThe system will now power off."
+    poweroff
 end
 
 if not allow A:/
@@ -64,39 +46,31 @@ if not allow A:/
 	poweroff
 end
 
-
-set CONTENT_DIR A:/title/00040000/$[TID_LOW]/content
-if find A:/title/00040000/$[TID_LOW] TID_LOW_DIR
-	if ask "Some data alredy exists on the SD for\nthe game on the gamecart!\nOverwrite it?\nWARNING: THIS WILL DELETE ANY EXISTING SAVE FILE!!\n(Choosing no will power off)."
-		rm $[TID_LOW_DIR]
+set TID_LOW_DIR A:/title/00040000/$[TID_LOW]
+set CONTENT_DIR $[TID_LOW_DIR]/content
+if isdir $[CONTENT_DIR]
+	if ask "Some data alredy exists on the SD for\nthe game on the gamecart!\n \nOverwrite it?\nChoosing no will power off."
+		rm $[CONTENT_DIR]
 	else
 		poweroff
 	end
 end
 
-if not isdir 0:/cartInstall
-	mkdir 0:/cartInstall
-end
 set WORKDIR 0:/cartInstall
+if not isdir $[WORKDIR]
+	mkdir $[WORKDIR]
+end
 
 if not decrypt -o $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
-	@CopyFail
-	echo "Content decryption failed.\nThis could be due to not having enough free space\non the SD, or due to the user cancelling the copy."
-	echo "The system will now remove any gamedata created\nin this session and power off."
-	for $[CONTENT_DIR] *
-		rm -o -s $[FORPATH]
-	next
-	poweroff
+	goto CopyFail
 end
 setsdapp $[CONTENT_DIR]/00000000.app
-stripapp $[CONTENT_DIR]/00000000.app $[WORKDIR]/00000000.app
 
 if find G:/content1.manual.app CONTENT1_PATH
 	if not decrypt -o $[CONTENT1_PATH] $[CONTENT_DIR]/00000001.app
 		goto CopyFail
 	end
 	setsdapp $[CONTENT_DIR]/00000001.app
-	stripapp $[CONTENT_DIR]/00000001.app $[WORKDIR]/00000001.app
 end
 
 if find G:/content2.dlp.app CONTENT2_PATH
@@ -104,39 +78,43 @@ if find G:/content2.dlp.app CONTENT2_PATH
 		goto CopyFail
 	end
 	setsdapp $[CONTENT_DIR]/00000002.app
-	stripapp $[CONTENT_DIR]/00000002.app $[WORKDIR]/00000002.app
 end
+
+imgumount
 
 mkdir $[CONTENT_DIR]/cmd
-buildmds -t -c $[CONTENT_DIR]
-buildmds -t $[WORKDIR]
-
-find $[WORKDIR]/*.tmd DUM_TMD_PATH
-mv -o -s $[GM9OUT] $[WORKDIR]/outbak
-buildcia $[DUM_TMD_PATH]
-find $[GM9OUT]/*.cia DUM_CIA_PATH
-mv -w $[DUM_CIA_PATH] $[WORKDIR]/$[TID_LOW].cia
-rm $[GM9OUT]
-mv -o -s $[WORKDIR]/outbak $[GM9OUT]
-
-for $[WORKDIR] *.app
-	rm $[FORPATH]
-next
-rm $[DUM_TMD_PATH]
-
-rm -o -s $[WORKDIR]/id0.txt
-dumptxt $[WORKDIR]/id0.txt $[SYSID0]
-
-if exist 0:/boot.3dsx
-	mv 0:/boot.3dsx $[WORKDIR]/boot.3dsx.bak
+if not buildmds -t -c $[CONTENT_DIR]
+    echo "Failed to build metadata.\n \nThis should not happen; please report this as\nit is likely a bug."
+    goto ContentRemove
 end
-cp $[HB_APP_PATH] 0:/boot.3dsx
 
-cp $[CONFIG_PATH] $[WORKDIR]/config.bin.bak
-fset $[CONFIG_PATH]@14:8 $[R_HOME_MENU_TID]
+cp -w $[TICKDB] $[WORKDIR]/ticket.db.bak
+cp -w $[TITLEDB] $[WORKDIR]/title.db.bak
 
-if ask "Done!\nThe installation will be finalized\nnext time you boot into luma.\nIf you would like to install another cart,\nplease insert it now and choose no.\nReboot now?"
-	reboot
-else
+if not insttmd $[CONTENT_DIR]/00000000.tmd
+    echo "Failed to generate and install\ntitle info entry and ticket.\n \nThis should not happen; please report this as\nit is likely a bug."
+    goto ContentRemove
+end
+
+fget $[CONTENT_DIR]/00000000.tmd@19B:4 SAVE_SIZE
+if not chk $[SAVE_SIZE] 00000000
+    if not exist $[TID_LOW_DIR]/data/00000001.sav
+        mkdir -o -s $[TID_LOW_DIR]/data
+        fdummy $[TID_LOW_DIR]/data/00000001.sav $[SAVE_SIZE]
+    end
+end
+
+if ask "Done!\n \nWould you like to install another cartridge game now?\nChoosing no will reboot."
 	goto CartInstall
+else
+	reboot
 end
+
+@CopyFail
+echo "Content decryption failed.\nThis could be due to not having enough free space\non the SD, or due to the user cancelling the copy."
+@ContentRemove
+echo "The system will now remove any gamedata created\nin this session and power off."
+for $[CONTENT_DIR] *
+    rm -o -s $[FORPATH]
+next
+poweroff
