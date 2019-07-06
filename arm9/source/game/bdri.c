@@ -327,15 +327,15 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
     
     // Find contiguous free space in the FAT for the entry. Technically there could be a case of enough space existing, but not in a contiguous fasion, but this would never realistically happen
     do {
+        if (next_fat_index == 0)
+            return 1; // Reached the end of the free node chain without finding enough contiguous free space - this should never realistically happen
+        
         fat_index = next_fat_index;
         
         if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + fat_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
             return 1;
         
         next_fat_index = getindex(fat_entry[1]);
-        
-        if (next_fat_index == 0)
-            return 1; // Reached the end of the free node chain without finding enough contiguous free space - this should never realistically happen
         
         if (getflag(fat_entry[1])) { // Multi-entry node
             if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + (fat_index + 1) * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
