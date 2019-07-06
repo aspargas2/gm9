@@ -27,3 +27,4 @@ u32 BuildSeedInfo(const char* path, bool dump);
 u32 GetGoodName(char* name, const char* path, bool quick);
 u32 StripNcch(const char* inpath, const char* outpath);
 u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd);
+u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/);

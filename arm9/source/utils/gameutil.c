@@ -8,6 +8,7 @@
 #include "aes.h"
 #include "sha.h"
 #include "nandcmac.h"
+#include "bdri.h"
 
 // use NCCH crypto defines for everything 
 #define CRYPTO_DECRYPT  NCCH_NOCRYPTO
@@ -2889,5 +2890,100 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
         fvx_close(&mdFile);
     }
     
+    return 0;
+}
+
+// This function was somewhat based on https://github.com/ihaveamac/gen-title-info-entry/blob/master/gen-title-info-entry.py
+// It currently makes a few assumptions that don't hold true for DLC (!)
+u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/) {
+    TitleInfoEntry tie;
+    Ticket ticket;
+    bool do_ticket = true;
+    TitleMetaData* tmd = (TitleMetaData*) malloc(TMD_SIZE_MAX);
+    TmdContentChunk* content_list = (TmdContentChunk*) (tmd + 1);
+    
+    if (!tmd)
+        return 1;
+    
+    if (LoadTmdFile(tmd, path) != 0) {
+        free(tmd);
+        return 1;
+    }
+    
+    if (ReadTicketFromDB(TICKDB_PATH(false), tmd->title_id, NULL) == 0)
+        do_ticket = ShowPrompt(true, "A ticket already existed for the title being installed.\nOverwite it with a fake ticket?\nChoosing no will proceed with installation,\nbut keep the current ticket.");
+    
+    if (do_ticket)
+    {
+        if (BuildFakeTicket(&ticket, tmd->title_id) != 0) {
+            free(tmd);
+            return 1;
+        }
+        
+        // It's fine if this fails, because the ticket may not be there. A better solution than just not checking return would be to return a different code for not finding the entry
+        RemoveTicketFromDB(TICKDB_PATH(false), tmd->title_id);
+        
+        if ((AddTicketToDB(TICKDB_PATH(false), tmd->title_id, &ticket) != 0) || (FixFileCmac(TICKDB_PATH(false)) != 0)) {
+            free(tmd);
+            return 1;
+        }
+    }
+    
+    memset(&tie, 0, sizeof(TitleInfoEntry));
+    
+    const u16 content_count = getbe16(tmd->content_count);
+    const u32 tmd_size = TMD_SIZE_N(content_count);
+    const u32 save_size = getbe32(tmd->save_size);
+    u32 tmd_content_id;
+    bool has_manual = false;
+    char dir_path[256], content0_path[256];
+    u8 ncch[sizeof(NcchHeader) + sizeof(NcchExtHeader)];
+    int ret; // TEMPORARY. TODO: REMOVE THIS AND EVERYWHERE IT'S USED
+    
+    if ((ret = sscanf(path, "%34s/%08lx.tmd", dir_path, &tmd_content_id)) != 2) { // assumption alert - assumes tmd is in a dir where a title would usually be installed
+        ShowPrompt(false, "sscanf failed.\n\npath was:\n%s\n\nreturn value was %d\n\ndir_path was:\n%s\n\ntmd_id was 0x%X", path, ret, dir_path, tmd_content_id);
+        free(tmd);
+        return 1;
+    }
+    snprintf(content0_path, 256, "%s/%08lx.app", dir_path, getbe32(content_list[0].id));
+    
+    if ((fvx_qread(content0_path, ncch, 0, sizeof(NcchHeader) + sizeof(NcchExtHeader), NULL) != FR_OK) ||
+        (ValidateNcchHeader((NcchHeader*)(void*) ncch) != 0)) {
+        ShowPrompt(false, "Loading content0 ncch failed.\n\ncontent0_path was:\n%s", content0_path);
+        free(tmd);
+        return 1;
+    }
+    
+    // Thanks to ihaveamac aka ihaveahax for the title size calculations. Currently assumes an SD title here.
+    
+    tie.title_size = 0x8000 * (save_size ? 5 : 4); // tidlow folder, content folder, cmd folder, data folder if it's there, and cmd file (which will never exceed 0x8000)
+    tie.title_size += save_size + ((save_size % 0x8000 == 0) ? 0 : 0x8000 - (save_size % 0x8000)); // sav file
+    tie.title_size += tmd_size + ((tmd_size % 0x8000 == 0) ? 0 : 0x8000 - (tmd_size % 0x8000)); // tmd file
+    
+    for (u32 i = 0; i < content_count; i++) { // contents - also checks for a manual here
+        u64 content_size = getbe64(content_list[i].size);
+        tie.title_size += content_size + ((content_size % 0x8000 == 0) ? 0 : 0x8000 - (content_size % 0x8000));
+        if (getbe32(content_list[i].id) == 1) has_manual = true;
+    }
+    
+    tie.title_type = getbe32(tmd->title_type);
+    tie.title_version = getbe16(tmd->title_version);
+    tie.flags_0[0] = has_manual ? 1 : 0;
+    tie.tmd_content_id = tmd_content_id;
+    tie.cmd_content_id = 1;
+    tie.flags_1[0] = save_size ? 1 : 0;
+    tie.extdata_id_low = ((NcchHeader*)(void*) ncch)->size_exthdr ? *((u32*)(void*) (ncch + NCCH_EXTHDR_OFFSET + 0x30)) : 0;
+    tie.flags_2[4] = 1;
+    strcpy(tie.product_code, ((NcchHeader*)(void*) ncch)->productcode);
+    
+    RemoveTitleInfoEntryFromDB(SD_TITLEDB_PATH(false), tmd->title_id);
+    
+    if ((AddTitleInfoEntryToDB(SD_TITLEDB_PATH(false), tmd->title_id, &tie) != 0) || (FixFileCmac(SD_TITLEDB_PATH(false)) != 0)) {
+        ShowPrompt(false, "add tie to db fail");
+        free(tmd);
+        return 1;
+    }
+    
+    free(tmd);
     return 0;
 }
