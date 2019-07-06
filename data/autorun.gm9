@@ -95,7 +95,9 @@ cp -w $[TICKDB] $[WORKDIR]/ticket.db.bak
 cp -w $[TITLEDB] $[WORKDIR]/title.db.bak
 
 if not insttmd $[CONTENT_DIR]/00000000.tmd
-    echo "Failed to generate and install\ntitle info entry and ticket.\n \nThis should not happen; please report this as\nit is likely a bug."
+    echo "Failed to generate and install\ntitle info entry and ticket.\n \nThis should not happen; please report this as\nit is likely a bug.\n \nThe SD title.db and CTRNAND ticket.db will\nnow be restored to their original state."
+    cp -w $[WORKDIR]/ticket.db.bak $[TICKDB]
+    cp -w $[WORKDIR]/title.db.bak $[TITLEDB]
     goto ContentRemove
 end
 
