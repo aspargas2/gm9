@@ -112,6 +112,7 @@ typedef enum {
     CMD_ID_BUILDMDS,
     CMD_ID_STRIPAPP,
     CMD_ID_SETSDAPP,
+    CMD_ID_INSTTMD,
     CMD_ID_EXTRCODE,
     CMD_ID_CMPRCODE,
     CMD_ID_SDUMP,
@@ -188,9 +189,10 @@ Gm9ScriptCmd cmd_list[] = {
     { CMD_ID_BUILDMDS, "buildmds", 1, _FLG('t') | _FLG('c') },
     { CMD_ID_STRIPAPP, "stripapp", 2, 0 },
     { CMD_ID_SETSDAPP, "setsdapp", 1, 0 },
+    { CMD_ID_INSTTMD , "insttmd" , 1, 0 },
     { CMD_ID_EXTRCODE, "extrcode", 2, 0 },
     { CMD_ID_CMPRCODE, "cmprcode", 2, 0 },
-    { CMD_ID_SDUMP   , "sdump",    1, _FLG('w') },
+    { CMD_ID_SDUMP   , "sdump"   , 1, _FLG('w') },
     { CMD_ID_APPLYIPS, "applyips", 3, 0 },
     { CMD_ID_APPLYBPS, "applybps", 3, 0 },
     { CMD_ID_APPLYBPM, "applybpm", 3, 0 },
@@ -1332,6 +1334,10 @@ bool run_cmd(cmd_id id, u32 flags, char** argv, char* err_str) {
     else if (id == CMD_ID_SETSDAPP) {
         ret = (SetNcchFileSdFlag(argv[0]) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "set SD app flag failed");
+    }
+    else if (id == CMD_ID_INSTTMD) {
+        ret = (InstallTicketTieFromTmd(argv[0]) == 0);
+        if (err_str) snprintf(err_str, _ERR_STR_LEN, "ticket/tie installation failed");
     }
     else if (id == CMD_ID_EXTRCODE) {
         u64 filetype = IdentifyFileType(argv[0]);
