@@ -1,4 +1,4 @@
-# set PREVIEW_MODE NONE
+set PREVIEW_MODE "CartInstall\nA GodMode9 fork by aspargas2"
 
 if ask "Would you like to view the readme?"
     textview V:/README_internal.md
