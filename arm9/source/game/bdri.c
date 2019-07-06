@@ -37,14 +37,8 @@ static u32 GetHashBucket(const u8* tid, u32 parent_dir_index, u32 bucket_count)
 static u32 ReadBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_header, const u32 fs_header_offset, const u8* title_id, u8* entry, const u32 expected_size)
 {
     if ((fs_header->image_size != info->size_ivfc_lvl4 / fs_header->image_block_size) || 
-        (fs_header->info_offset != 0x20) || (fs_header->fat_entry_count != fs_header->data_block_count)) {
-        char str[512];
-        sprintf(str, "fs_header data checks failed.\nimage_size was 0x%llX\nsize_ivfc_lvl4 was 0x%lX\n\
-image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\ndata_block_count was 0x%lX",
-            fs_header->image_size, info->size_ivfc_lvl4, fs_header->image_block_size, fs_header->info_offset, fs_header->fat_entry_count, fs_header->data_block_count);
-        ShowPrompt(false, str);
+        (fs_header->info_offset != 0x20) || (fs_header->fat_entry_count != fs_header->data_block_count))
         return 1;
-    }
     
     const u32 data_offset = fs_header_offset + fs_header->data_offset;
     const u32 det_offset = data_offset + fs_header->det_start_block * fs_header->data_block_size;
@@ -58,41 +52,30 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
     u8* title_id_be = (u8*) &tid_be;
     
     // Read the index of the first file from the directory entry table
-    if (ReadDisaDiffIvfcLvl4(NULL, info, det_offset + 0x2C, sizeof(u32), &(file_entry.next_sibling_index)) != sizeof(u32)) {
-        ShowPrompt(false, "Read DET fail");    
+    if (ReadDisaDiffIvfcLvl4(NULL, info, det_offset + 0x2C, sizeof(u32), &(file_entry.next_sibling_index)) != sizeof(u32))
         return 1;
-    }
     
     // Find the file entry for the tid specified, fail if it doesn't exist
     do {
-        if (file_entry.next_sibling_index == 0) {
-            //ShowPrompt(false, "Entry not found");
+        if (file_entry.next_sibling_index == 0)
             return 1;
-        }
         
         index = file_entry.next_sibling_index;
         
-        if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index * sizeof(TdbFileEntry), sizeof(TdbFileEntry), &file_entry) != sizeof(TdbFileEntry)) {
-            ShowPrompt(false, "Read FileEntry fail");
+        if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index * sizeof(TdbFileEntry), sizeof(TdbFileEntry), &file_entry) != sizeof(TdbFileEntry))
             return 1;
-        }
     } while (memcmp(title_id_be, file_entry.title_id, 8) != 0);
     
-    if (expected_size && (file_entry.size != expected_size)) {
-        ShowPrompt(false, "Size mismatch");
+    if (expected_size && (file_entry.size != expected_size))
         return 1;
-    }
     
     u32 hash_bucket = GetHashBucket(file_entry.title_id, file_entry.parent_index, fs_header->fht_bucket_count);
-    if (ReadDisaDiffIvfcLvl4(NULL, info, fht_offset + hash_bucket * sizeof(u32), sizeof(u32), &index_hash) != sizeof(u32)) {
-        ShowPrompt(false, "Read FHT fail");
-        return 1;
-    }
     
-    if (index != index_hash) {
-        ShowPrompt(false, "Hash bucket had wrong index.\nExpected index 0x%X, but got 0x%X.", index, index_hash);
+    if (ReadDisaDiffIvfcLvl4(NULL, info, fht_offset + hash_bucket * sizeof(u32), sizeof(u32), &index_hash) != sizeof(u32))
         return 1;
-    }
+    
+    if (index != index_hash)
+        return 1;
     
     index = file_entry.start_block_index + 1; // FAT entry index
     
@@ -100,28 +83,20 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
         u32 read_start = index - 1; // Data region block index
         u32 read_count = 0;
     
-        if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE) {
-            ShowPrompt(false, "FAT read fail");
+        if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
             return 1;
-        }
         
-        if ((bytes_read == 0) && !getflag(fat_entry[0])) {
-            ShowPrompt(false, "Flag U not set for first entry of first FAT node");
+        if ((bytes_read == 0) && !getflag(fat_entry[0]))
             return 1;
-        }
         
         u32 next_index = getindex(fat_entry[1]);
         
         if (getflag(fat_entry[1])) { // Multi-entry node
-            if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + (index + 1) * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE) {
-                ShowPrompt(false, "FAT read fail");
+            if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + (index + 1) * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
                 return 1;
-            }
             
-            if (!getflag(fat_entry[0]) || getflag(fat_entry[1]) || (getindex(fat_entry[0]) != index) || (getindex(fat_entry[0]) >= getindex(fat_entry[1]))) {
-                ShowPrompt(false, "Wrong flag state or illogical index values for\nsecond entry of multi-entry FAT node");
+            if (!getflag(fat_entry[0]) || getflag(fat_entry[1]) || (getindex(fat_entry[0]) != index) || (getindex(fat_entry[0]) >= getindex(fat_entry[1])))
                 return 1;
-            }
             
             read_count = getindex(fat_entry[1]) + 1 - index;
         } else { // Single-entry node
@@ -131,10 +106,8 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
         index = next_index;
         
         u32 btr = min(file_entry.size - bytes_read, read_count * fs_header->data_block_size);
-        if (entry && (ReadDisaDiffIvfcLvl4(NULL, info, data_offset + read_start * fs_header->data_block_size, btr, entry + bytes_read) != btr)) {
-            ShowPrompt(false, "Data region read fail");
+        if (entry && (ReadDisaDiffIvfcLvl4(NULL, info, data_offset + read_start * fs_header->data_block_size, btr, entry + bytes_read) != btr))
             return 1;
-        }
             
         bytes_read += btr;
     }
@@ -145,14 +118,8 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
 static u32 RemoveBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_header, const u32 fs_header_offset, const u8* title_id)
 {
     if ((fs_header->image_size != info->size_ivfc_lvl4 / fs_header->image_block_size) || 
-        (fs_header->info_offset != 0x20) || (fs_header->fat_entry_count != fs_header->data_block_count)) {
-        char str[512];
-        sprintf(str, "fs_header data checks failed.\nimage_size was 0x%llX\nsize_ivfc_lvl4 was 0x%lX\n\
-image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\ndata_block_count was 0x%lX\nfs_header_offset was 0x%lX",
-            fs_header->image_size, info->size_ivfc_lvl4, fs_header->image_block_size, fs_header->info_offset, fs_header->fat_entry_count, fs_header->data_block_count, fs_header_offset);
-        ShowPrompt(false, str);
+        (fs_header->info_offset != 0x20) || (fs_header->fat_entry_count != fs_header->data_block_count))
         return 1;
-    }
     
     const u32 data_offset = fs_header_offset + fs_header->data_offset;
     const u32 det_offset = data_offset + fs_header->det_start_block * fs_header->data_block_size;
@@ -175,25 +142,19 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
         previous_index = index;
         index = file_entry.next_sibling_index;
         
-        if (index == 0) {
-            // ShowPrompt(false, "Entry not found");
+        if (index == 0)
             return 1;
-        }
         
-        if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index * sizeof(TdbFileEntry), sizeof(TdbFileEntry), &file_entry) != sizeof(TdbFileEntry)) {
-            ShowPrompt(false, "Read FileEntry fail");
+        if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index * sizeof(TdbFileEntry), sizeof(TdbFileEntry), &file_entry) != sizeof(TdbFileEntry))
             return 1;
-        }
     } while (memcmp(title_id_be, file_entry.title_id, 8) != 0);
     
     // Read the first entry in the FET, which is always a dummy entry
     if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset, sizeof(DummyFileEntry), &dummy_entry) != sizeof(DummyFileEntry))
         return 1;
     
-    if (dummy_entry.max_entry_count != fs_header->max_file_count + 1) {
-        ShowPrompt(false, "max_entry_count != max_file_count + 1\nwhen deleting BDRI entry");
+    if (dummy_entry.max_entry_count != fs_header->max_file_count + 1)
         return 1;
-    }
     
     if ((WriteDisaDiffIvfcLvl4(NULL, info, fet_offset + index * sizeof(TdbFileEntry), sizeof(TdbFileEntry), &dummy_entry) != sizeof(DummyFileEntry)) ||
         (WriteDisaDiffIvfcLvl4(NULL, info, fet_offset + 0x28, sizeof(u32), &index) != sizeof(u32)) ||
@@ -210,10 +171,8 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
             return 1;
     } else {
         do {
-            if (index_hash == 0) {
-                ShowPrompt(false, "Warning: reached end of hash bucket\nlinked list when deleting BDRI file");
+            if (index_hash == 0) // This shouldn't happen, if the entry was properly added
                 break;
-            }
             
             if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index_hash * sizeof(TdbFileEntry) + 0x28, sizeof(u32), &index_hash) != sizeof(u32))
                 return 1;
@@ -226,10 +185,8 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
     if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
-    if (getflag(fat_entry[1]) || (fat_entry[0] != 0)) {
-        ShowPrompt(false, "0th FAT entry had non-zero values\nfor something other than index V");
+    if (getflag(fat_entry[1]) || (fat_entry[0] != 0))
         return 1;
-    }
     
     previous_index = getindex(fat_entry[1]);
     index = file_entry.start_block_index + 1;
@@ -262,14 +219,8 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
 static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_header, const u32 fs_header_offset, const u8* title_id, const u8* entry, const u32 size)
 {
     if ((fs_header->image_size != info->size_ivfc_lvl4 / fs_header->image_block_size) || 
-        (fs_header->info_offset != 0x20) || (fs_header->fat_entry_count != fs_header->data_block_count)) {
-        char str[512];
-        sprintf(str, "fs_header data checks failed.\nimage_size was 0x%llX\nsize_ivfc_lvl4 was 0x%lX\n\
-image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\ndata_block_count was 0x%lX\nfs_header_offset was 0x%lX",
-            fs_header->image_size, info->size_ivfc_lvl4, fs_header->image_block_size, fs_header->info_offset, fs_header->fat_entry_count, fs_header->data_block_count, fs_header_offset);
-        ShowPrompt(false, str);
+        (fs_header->info_offset != 0x20) || (fs_header->fat_entry_count != fs_header->data_block_count))
         return 1;
-    }
     
     if (!entry || !size)
         return 1;
@@ -280,7 +231,6 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
     const u32 fht_offset = fs_header_offset + fs_header->fht_offset;
     const u32 fat_offset = fs_header_offset + fs_header->fat_offset;
     const u32 size_blocks = (size / fs_header->data_block_size) + (((size % fs_header->data_block_size) == 0) ? 0 : 1);
-    //ShowPrompt(false, "size is 0x%lX\nsize_blocks is 0x%lX", size, size_blocks);
     u32 index = 0, index_hash = 0, max_index = 0, node_size = 0, fat_index = 0;
     u32 fat_entry[2];
     TdbFileEntry file_entry;
@@ -297,10 +247,8 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
         index = file_entry.next_sibling_index;
         max_index = max(index, max_index);
         
-        if (memcmp(title_id_be, file_entry.title_id, 8) == 0) {
-            ShowPrompt(false, "Entry already found when adding BDRI entry");
+        if (memcmp(title_id_be, file_entry.title_id, 8) == 0)
             return 1;
-        }
         
         if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index * sizeof(TdbFileEntry), sizeof(TdbFileEntry), &file_entry) != sizeof(TdbFileEntry))
             return 1;
@@ -310,18 +258,14 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
     if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset, sizeof(DummyFileEntry), &dummy_entry) != sizeof(DummyFileEntry)) 
         return 1;
     
-    if (dummy_entry.max_entry_count != fs_header->max_file_count + 1) {
-        ShowPrompt(false, "max_entry_count != max_file_count + 1\nwhen adding BDRI entry");
+    if (dummy_entry.max_entry_count != fs_header->max_file_count + 1)
         return 1;
-    }
     
     if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
-    if (getflag(fat_entry[1]) || (fat_entry[0] != 0)) {
-        ShowPrompt(false, "0th FAT entry had non-zero values\nfor something other than index V");
+    if (getflag(fat_entry[1]) || (fat_entry[0] != 0))
         return 1;
-    }
     
     u32 next_fat_index = getindex(fat_entry[1]);
     
@@ -341,18 +285,14 @@ image_block_size was 0x%lX\ninfo_offset was 0x%llX\nfat_entry_count was 0x%lX\nd
             if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + (fat_index + 1) * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
                 return 1;
             
-            if (!getflag(fat_entry[0]) || getflag(fat_entry[1]) || (getindex(fat_entry[0]) != fat_index) || (getindex(fat_entry[0]) >= getindex(fat_entry[1]))) {
-                ShowPrompt(false, "Wrong flag state or illogical index values for\nsecond entry of multi-entry FAT node");
+            if (!getflag(fat_entry[0]) || getflag(fat_entry[1]) || (getindex(fat_entry[0]) != fat_index) || (getindex(fat_entry[0]) >= getindex(fat_entry[1])))
                 return 1;
-            }
             
             node_size = getindex(fat_entry[1]) + 1 - fat_index;
         } else { // Single-entry node
             node_size = 1;
         }
     } while (node_size < size_blocks);
-    
-    ShowPrompt(false, "node_size is 0x%lX", node_size);
     
     const bool shrink_free_node = node_size > size_blocks;
     
@@ -481,7 +421,6 @@ u32 ReadTitleInfoEntryFromDB(const char* path, const u8* title_id, TitleInfoEntr
     TitleDBPreHeader pre_header;
     
     if (ReadDisaDiffIvfcLvl4(NULL, &info, 0, sizeof(TitleDBPreHeader), &pre_header) != sizeof(TitleDBPreHeader)) {
-        ShowPrompt(false, "Read pre-header fail");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -489,7 +428,6 @@ u32 ReadTitleInfoEntryFromDB(const char* path, const u8* title_id, TitleInfoEntr
     }
     
     if (!CheckDBMagic((u8*) &pre_header, false)) {
-        ShowPrompt(false, "DB magic check failed");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -533,7 +471,6 @@ u32 ReadTicketFromDB(const char* path, const u8* title_id, Ticket* ticket)
     TickDBPreHeader pre_header;
     
     if (ReadDisaDiffIvfcLvl4(NULL, &info, 0, sizeof(TickDBPreHeader), &pre_header) != sizeof(TickDBPreHeader)) {
-        ShowPrompt(false, "Read pre-header fail");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -541,7 +478,6 @@ u32 ReadTicketFromDB(const char* path, const u8* title_id, Ticket* ticket)
     }
     
     if (!CheckDBMagic((u8*) &pre_header, true)) {
-        ShowPrompt(false, "DB magic check failed");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -561,10 +497,9 @@ u32 ReadTicketFromDB(const char* path, const u8* title_id, Ticket* ticket)
     
     if (te.unknown != 1)
         ShowPrompt(false, "Warning: ticket entry unknown u32 was 0x%X", te.unknown);
-    if (te.ticket_size != sizeof(Ticket)) {
-        ShowPrompt(false, "Wrong ticket size");
+    
+    if (te.ticket_size != sizeof(Ticket))
         return 1;
-    }
     
     *ticket = te.ticket;
     
@@ -594,7 +529,6 @@ u32 RemoveTitleInfoEntryFromDB(const char* path, const u8* title_id)
     const TitleDBPreHeader pre_header;
     
     if (ReadDisaDiffIvfcLvl4(NULL, &info, 0, sizeof(TitleDBPreHeader), (TitleDBPreHeader*) &pre_header) != sizeof(TitleDBPreHeader)) {
-        ShowPrompt(false, "Read pre-header fail");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -602,7 +536,6 @@ u32 RemoveTitleInfoEntryFromDB(const char* path, const u8* title_id)
     }
     
     if (!CheckDBMagic((const u8*) &pre_header, false)) {
-        ShowPrompt(false, "DB magic check failed");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -645,7 +578,6 @@ u32 RemoveTicketFromDB(const char* path, const u8* title_id)
     TickDBPreHeader pre_header;
     
     if (ReadDisaDiffIvfcLvl4(NULL, &info, 0, sizeof(TickDBPreHeader), &pre_header) != sizeof(TickDBPreHeader)) {
-        ShowPrompt(false, "Read pre-header fail");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -653,7 +585,6 @@ u32 RemoveTicketFromDB(const char* path, const u8* title_id)
     }
     
     if (!CheckDBMagic((u8*) &pre_header, true)) {
-        ShowPrompt(false, "DB magic check failed");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -696,7 +627,6 @@ u32 AddTitleInfoEntryToDB(const char* path, const u8* title_id, const TitleInfoE
     TitleDBPreHeader pre_header;
     
     if (ReadDisaDiffIvfcLvl4(NULL, &info, 0, sizeof(TitleDBPreHeader), &pre_header) != sizeof(TitleDBPreHeader)) {
-        ShowPrompt(false, "Read pre-header fail");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -704,7 +634,6 @@ u32 AddTitleInfoEntryToDB(const char* path, const u8* title_id, const TitleInfoE
     }
     
     if (!CheckDBMagic((u8*) &pre_header, false)) {
-        ShowPrompt(false, "DB magic check failed");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -752,7 +681,6 @@ u32 AddTicketToDB(const char* path, const u8* title_id, const Ticket* ticket)
     TickDBPreHeader pre_header;
     
     if (ReadDisaDiffIvfcLvl4(NULL, &info, 0, sizeof(TickDBPreHeader), &pre_header) != sizeof(TickDBPreHeader)) {
-        ShowPrompt(false, "Read pre-header fail");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
@@ -760,7 +688,6 @@ u32 AddTicketToDB(const char* path, const u8* title_id, const Ticket* ticket)
     }
     
     if (!CheckDBMagic((u8*) &pre_header, true)) {
-        ShowPrompt(false, "DB magic check failed");
         free(lvl2_cache);
         SetDisaDiffFile(NULL);
         fvx_close(&file);
