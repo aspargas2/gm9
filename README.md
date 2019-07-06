@@ -1,5 +1,5 @@
 # CartInstall
-An uncreatively named __[GodMode9](https://github.com/d0k3/GodMode9)__ fork for installing 3ds cartridge games to the SD
+An uncreatively named __[GodMode9](https://github.com/d0k3/GodMode9)__ fork for installing 3DS cartridge games to the SD
 
 ## General Info
 As stated above, this is merely a fork of [GodMode9](https://github.com/d0k3/GodMode9). I played no part in the creation of any of GodMode9.
@@ -27,5 +27,6 @@ You may use this under the terms of the GNU General Public License GPL v2 or und
 ## Credits:
 * Everyone who contributed in any way to [GodMode9](https://github.com/d0k3/GodMode9), as this is just a fork of it
 * [3DBrew](https://www.3dbrew.org/wiki/Main_Page) and all its editors, for being an essential resource in making this tool
-* [@BpyH64](https://github.com/BpyH64) on GitHub for figuring out the CMACs on the `.cmd` files (this tool would not be possible without that discovery), and for the idea of creating dummy CIA files to get the correct entries into ticket.db and title.db
+* [@BpyH64](https://github.com/BpyH64) for figuring out the CMACs on the `.cmd` files, without which this tool would not be possible
+* [@wwylele](https://github.com/wwylele) for reverse engineering and documenting the internal format of the 3DS's `.db` files, and for creating [a tool that is able to modify those files](https://github.com/wwylele/save3ds), which was the inspiration for this tool's ability to modify those files from the arm9
 * Everyone in crc on the Nintendo Homebrew Discord server who helped test this
