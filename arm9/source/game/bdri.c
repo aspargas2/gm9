@@ -45,13 +45,13 @@ static u32 ReadBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_head
     const u32 fet_offset = data_offset + fs_header->fet_start_block * fs_header->data_block_size;
     const u32 fht_offset = fs_header_offset + fs_header->fht_offset;
     const u32 fat_offset = fs_header_offset + fs_header->fat_offset;
-    u32 index, index_hash, bytes_read = 0;
-    u32 fat_entry[2];
+    
+    u32 index = 0;
     TdbFileEntry file_entry;
     u64 tid_be = getbe64(title_id);
     u8* title_id_be = (u8*) &tid_be;
     
-    // Read the index of the first file from the directory entry table
+    // Read the index of the first file entry from the directory entry table
     if (ReadDisaDiffIvfcLvl4(NULL, info, det_offset + 0x2C, sizeof(u32), &(file_entry.next_sibling_index)) != sizeof(u32))
         return 1;
     
@@ -69,7 +69,8 @@ static u32 ReadBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_head
     if (expected_size && (file_entry.size != expected_size))
         return 1;
     
-    u32 hash_bucket = GetHashBucket(file_entry.title_id, file_entry.parent_index, fs_header->fht_bucket_count);
+    const u32 hash_bucket = GetHashBucket(file_entry.title_id, file_entry.parent_index, fs_header->fht_bucket_count); 
+    u32 index_hash = 0;
     
     if (ReadDisaDiffIvfcLvl4(NULL, info, fht_offset + hash_bucket * sizeof(u32), sizeof(u32), &index_hash) != sizeof(u32))
         return 1;
@@ -78,6 +79,9 @@ static u32 ReadBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_head
         return 1;
     
     index = file_entry.start_block_index + 1; // FAT entry index
+    
+    u32 bytes_read = 0;
+    u32 fat_entry[2];
     
     while (bytes_read < file_entry.size) { // Read the full file, walking the FAT node chain
         u32 read_start = index - 1; // Data region block index
@@ -126,14 +130,13 @@ static u32 RemoveBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_he
     const u32 fet_offset = data_offset + fs_header->fet_start_block * fs_header->data_block_size;
     const u32 fht_offset = fs_header_offset + fs_header->fht_offset;
     const u32 fat_offset = fs_header_offset + fs_header->fat_offset;
-    u32 index = 0, index_hash = 0, previous_index = 0;
-    u32 fat_entry[2];
+    
+    u32 index = 0, previous_index = 0;
     TdbFileEntry file_entry;
-    DummyFileEntry dummy_entry;
     u64 tid_be = getbe64(title_id);
     u8* title_id_be = (u8*) &tid_be;
     
-    // Read the index of the first file from the directory entry table
+    // Read the index of the first file entry from the directory entry table
     if (ReadDisaDiffIvfcLvl4(NULL, info, det_offset + 0x2C, sizeof(u32), &(file_entry.next_sibling_index)) != sizeof(u32))
         return 1;
     
@@ -149,7 +152,9 @@ static u32 RemoveBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_he
             return 1;
     } while (memcmp(title_id_be, file_entry.title_id, 8) != 0);
     
-    // Read the first entry in the FET, which is always a dummy entry
+    DummyFileEntry dummy_entry;
+    
+    // Read the 0th entry in the FET, which is always a dummy entry
     if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset, sizeof(DummyFileEntry), &dummy_entry) != sizeof(DummyFileEntry))
         return 1;
     
@@ -162,7 +167,9 @@ static u32 RemoveBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_he
             sizeof(u32), &(file_entry.next_sibling_index)) != sizeof(u32)))
         return 1;
     
-    u32 hash_bucket = GetHashBucket(file_entry.title_id, file_entry.parent_index, fs_header->fht_bucket_count);
+    const u32 hash_bucket = GetHashBucket(file_entry.title_id, file_entry.parent_index, fs_header->fht_bucket_count);
+    u32 index_hash = 0;
+    
     if (ReadDisaDiffIvfcLvl4(NULL, info, fht_offset + hash_bucket * sizeof(u32), sizeof(u32), &index_hash) != sizeof(u32))
         return 1;
     
@@ -171,7 +178,7 @@ static u32 RemoveBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_he
             return 1;
     } else {
         do {
-            if (index_hash == 0) // This shouldn't happen, if the entry was properly added
+            if (index_hash == 0) // This shouldn't happen if the entry was properly added
                 break;
             
             if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset + index_hash * sizeof(TdbFileEntry) + 0x28, sizeof(u32), &index_hash) != sizeof(u32))
@@ -182,35 +189,37 @@ static u32 RemoveBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_he
             return 1;
     }
     
+    u32 fat_entry[2];
+    
     if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
     if (getflag(fat_entry[1]) || (fat_entry[0] != 0))
         return 1;
     
-    previous_index = getindex(fat_entry[1]);
-    index = file_entry.start_block_index + 1;
+    u32 next_free_index = getindex(fat_entry[1]), fat_index = file_entry.start_block_index + 1;
     
-    if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + sizeof(u32), sizeof(u32), &index) != sizeof(u32))
+    if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + sizeof(u32), sizeof(u32), &fat_index) != sizeof(u32))
         return 1;
     
-    fat_entry[1] = index;
+    fat_entry[1] = fat_index;
+    
     do {
-        index = getindex(fat_entry[1]);
+        fat_index = getindex(fat_entry[1]);
         
-        if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + FAT_ENTRY_SIZE * index, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
+        if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + FAT_ENTRY_SIZE * fat_index, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
             return 1;
     } while (getindex(fat_entry[1]) != 0);
         
-    fat_entry[1] |= previous_index;
+    fat_entry[1] |= next_free_index;
     
-    if ((WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE) ||
-        (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + previous_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE))
+    if ((WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + fat_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE) ||
+        (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + next_free_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE))
         return 1;
         
-    fat_entry[0] = builduv(index, false);
+    fat_entry[0] = builduv(fat_index, false);
     
-    if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + previous_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
+    if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + next_free_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
     return 0;
@@ -231,14 +240,13 @@ static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_heade
     const u32 fht_offset = fs_header_offset + fs_header->fht_offset;
     const u32 fat_offset = fs_header_offset + fs_header->fat_offset;
     const u32 size_blocks = (size / fs_header->data_block_size) + (((size % fs_header->data_block_size) == 0) ? 0 : 1);
-    u32 index = 0, index_hash = 0, max_index = 0, node_size = 0, fat_index = 0;
-    u32 fat_entry[2];
+    
+    u32 index = 0, max_index = 0;
     TdbFileEntry file_entry;
-    DummyFileEntry dummy_entry;
     u64 tid_be = getbe64(title_id);
     u8* title_id_be = (u8*) &tid_be;
     
-    // Read the index of the first file from the directory entry table
+    // Read the index of the first file entry from the directory entry table
     if (ReadDisaDiffIvfcLvl4(NULL, info, det_offset + 0x2C, sizeof(u32), &(file_entry.next_sibling_index)) != sizeof(u32))   
         return 1;
     
@@ -254,12 +262,7 @@ static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_heade
             return 1;
     }
     
-    // Read the first entry in the FET, which is always a dummy entry
-    if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset, sizeof(DummyFileEntry), &dummy_entry) != sizeof(DummyFileEntry)) 
-        return 1;
-    
-    if (dummy_entry.max_entry_count != fs_header->max_file_count + 1)
-        return 1;
+    u32 fat_entry[2];
     
     if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
@@ -267,7 +270,7 @@ static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_heade
     if (getflag(fat_entry[1]) || (fat_entry[0] != 0))
         return 1;
     
-    u32 next_fat_index = getindex(fat_entry[1]);
+    u32 next_fat_index = getindex(fat_entry[1]), node_size = 0, fat_index = 0;
     
     // Find contiguous free space in the FAT for the entry. Technically there could be a case of enough space existing, but not in a contiguous fasion, but this would never realistically happen
     do {
@@ -321,7 +324,7 @@ static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_heade
     if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + fat_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
-    const u32 previous_free_node = getindex(fat_entry[0]), next_free_node = getindex(fat_entry[1]);
+    const u32 previous_free_index = getindex(fat_entry[0]), next_free_index = getindex(fat_entry[1]);
     
     fat_entry[0] = builduv(0, true);
     fat_entry[1] = builduv(0, size_blocks > 1);
@@ -338,26 +341,35 @@ static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_heade
             return 1;
     }
     
-    if (next_free_node != 0) {
-        if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + next_free_node * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
+    if (next_free_index != 0) {
+        if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + next_free_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
             return 1;
         
-        fat_entry[0] = builduv(shrink_free_node ? fat_index + size_blocks : previous_free_node, (!shrink_free_node && (previous_free_node == 0)));
+        fat_entry[0] = builduv(shrink_free_node ? fat_index + size_blocks : previous_free_index, (!shrink_free_node && (previous_free_index == 0)));
         
-        if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + next_free_node * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
+        if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + next_free_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
             return 1;
     }
     
-    if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + previous_free_node * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
+    if (ReadDisaDiffIvfcLvl4(NULL, info, fat_offset + previous_free_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
-    fat_entry[1] = builduv(shrink_free_node ? fat_index + size_blocks : next_free_node, getflag(fat_entry[1]));
+    fat_entry[1] = builduv(shrink_free_node ? fat_index + size_blocks : next_free_index, getflag(fat_entry[1]));
     
-    if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + previous_free_node * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
+    if (WriteDisaDiffIvfcLvl4(NULL, info, fat_offset + previous_free_index * FAT_ENTRY_SIZE, FAT_ENTRY_SIZE, fat_entry) != FAT_ENTRY_SIZE)
         return 1;
     
     // Actual writing of the entry data
     if (WriteDisaDiffIvfcLvl4(NULL, info, data_offset + (fat_index - 1) * fs_header->data_block_size, size, entry) != size)
+        return 1;
+    
+    DummyFileEntry dummy_entry;
+    
+    // Read the 0th entry in the FET, which is always a dummy entry
+    if (ReadDisaDiffIvfcLvl4(NULL, info, fet_offset, sizeof(DummyFileEntry), &dummy_entry) != sizeof(DummyFileEntry)) 
+        return 1;
+    
+    if (dummy_entry.max_entry_count != fs_header->max_file_count + 1)
         return 1;
     
     if (dummy_entry.next_dummy_index == 0) { // If the 0th entry is the only dummy entry, make a new entry
@@ -380,6 +392,7 @@ static u32 AddBDRIEntry(const DisaDiffRWInfo* info, const BDRIFsHeader* fs_heade
     index = file_entry.next_sibling_index;
     
     const u32 hash_bucket = GetHashBucket(title_id_be, 1, fs_header->fht_bucket_count);
+    u32 index_hash = 0;
     
     if ((ReadDisaDiffIvfcLvl4(NULL, info, fht_offset + hash_bucket * sizeof(u32), sizeof(u32), &index_hash) != sizeof(u32)) ||
         (WriteDisaDiffIvfcLvl4(NULL, info, fht_offset + hash_bucket * sizeof(u32), sizeof(u32), &index) != sizeof(u32)))
