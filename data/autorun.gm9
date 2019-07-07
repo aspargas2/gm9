@@ -103,9 +103,11 @@ end
 
 fget $[CONTENT_DIR]/00000000.tmd@19B:4 SAVE_SIZE
 if not chk $[SAVE_SIZE] 00000000
-    if not exist $[TID_LOW_DIR]/data/00000001.sav
+    set SAVE_PATH $[TID_LOW_DIR]/data/00000001.sav 
+    if not exist $[SAVE_PATH]
         mkdir -o -s $[TID_LOW_DIR]/data
-        fdummy $[TID_LOW_DIR]/data/00000001.sav $[SAVE_SIZE]
+        fdummy $[SAVE_PATH] $[SAVE_SIZE]
+        fill $[SAVE_PATH]@0:20 00
     end
 end
 
