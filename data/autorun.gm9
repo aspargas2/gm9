@@ -64,23 +64,20 @@ if not isdir $[WORKDIR]
 	mkdir $[WORKDIR]
 end
 
-if not decrypt -o $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
+if not decrypt -o -h -f $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
 	goto CopyFail
 end
-setsdapp $[CONTENT_DIR]/00000000.app
 
 if find G:/content1.manual.app CONTENT1_PATH
-	if not decrypt -o $[CONTENT1_PATH] $[CONTENT_DIR]/00000001.app
+	if not decrypt -o -h -f $[CONTENT1_PATH] $[CONTENT_DIR]/00000001.app
 		goto CopyFail
 	end
-	setsdapp $[CONTENT_DIR]/00000001.app
 end
 
 if find G:/content2.dlp.app CONTENT2_PATH
-	if not decrypt -o $[CONTENT2_PATH] $[CONTENT_DIR]/00000002.app
+	if not decrypt -o -h -f $[CONTENT2_PATH] $[CONTENT_DIR]/00000002.app
 		goto CopyFail
 	end
-	setsdapp $[CONTENT_DIR]/00000002.app
 end
 
 imgumount
