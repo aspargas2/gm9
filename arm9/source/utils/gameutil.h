@@ -7,7 +7,7 @@ u32 LoadNcchHeaders(NcchHeader* ncch, NcchExtHeader* exthdr, ExeFsHeader* exefs,
 u32 LoadNcsdHeader(NcsdHeader* ncsd, const char* path);
 u32 VerifyGameFile(const char* path);
 u32 CheckEncryptedGameFile(const char* path);
-u32 PCryptGameFile(const char* path, const char* outdir, bool encrypt);
+u32 PCryptGameFile(const char* path, const char* outdir, bool encrypt, bool calc_sha, bool set_flag);
 u32 CryptGameFile(const char* path, bool inplace, bool encrypt);
 u32 BuildCiaFromGameFile(const char* path, bool force_legit);
 u32 DumpCxiSrlFromTmdFile(const char* path);

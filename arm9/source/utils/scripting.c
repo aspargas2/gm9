@@ -182,7 +182,7 @@ Gm9ScriptCmd cmd_list[] = {
     { CMD_ID_DUMPTXT , "dumptxt" , 2, _FLG('p') },
     { CMD_ID_FIXCMAC , "fixcmac" , 1, 0 },
     { CMD_ID_VERIFY  , "verify"  , 1, 0 },
-    { CMD_ID_DECRYPT , "decrypt" , 2, 0 },
+    { CMD_ID_DECRYPT , "decrypt" , 2, _FLG('h') | _FLG('f') },
     { CMD_ID_ENCRYPT , "encrypt" , 1, 0 },
     { CMD_ID_BUILDCIA, "buildcia", 1, _FLG('l') },
     { CMD_ID_BUILDMDS, "buildmds", 1, _FLG('t') | _FLG('c') },
@@ -558,6 +558,7 @@ u32 get_flag(char* str, u32 len, char* err_str) {
     else if (strncmp(str, "--include_dirs", len) == 0) flag_char = 'd';
     else if (strncmp(str, "--flip_endian", len) == 0) flag_char = 'e';
     else if (strncmp(str, "--first", len) == 0) flag_char = 'f';
+    else if (strncmp(str, "--flag", len) == 0) flag_char = 'f';
     else if (strncmp(str, "--hash", len) == 0) flag_char = 'h';
     else if (strncmp(str, "--keysel", len) == 0) flag_char = 'k';
     else if (strncmp(str, "--skip", len) == 0) flag_char = 'k';
@@ -1308,7 +1309,7 @@ bool run_cmd(cmd_id id, u32 flags, char** argv, char* err_str) {
     else if (id == CMD_ID_DECRYPT) {
         u64 filetype = IdentifyFileType(argv[0]);
         if (filetype & BIN_KEYDB) ret = (CryptAesKeyDb(argv[0], true, false) == 0);
-        else ret = (PCryptGameFile(argv[0], argv[1], false) == 0);
+        else ret = (PCryptGameFile(argv[0], argv[1], false, flags & _FLG('h'), flags & _FLG('f')) == 0);
         if (err_str) snprintf(err_str, _ERR_STR_LEN, "decrypt failed");
     }
     else if (id == CMD_ID_ENCRYPT) {

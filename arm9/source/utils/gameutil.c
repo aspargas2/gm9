@@ -863,7 +863,7 @@ u32 CheckEncryptedGameFile(const char* path) {
     else return 1;
 }
 
-u32 CryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16 crypto,
+u32 HCryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16 crypto, u8* sha, bool set_flag,
     u32 offset, u32 size, TmdContentChunk* chunk, const u8* titlekey) { // this line only for CIA contents
     // this will do a simple copy for unencrypted files
     bool inplace = (strncmp(orig, dest, 256) == 0);
@@ -921,6 +921,7 @@ u32 CryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16 
     }
         
     u32 ret = 0;
+    if (sha) sha_init(SHA256_MODE);
     if (!ShowProgress(offset, fsize, dest)) ret = 1;
     if (mode & (GAME_NCCH|GAME_NCSD|GAME_BOSS|SYS_FIRM|GAME_NDS)) { // for NCCH / NCSD / BOSS / FIRM files
         for (u64 i = 0; (i < size) && (ret == 0); i += STD_BUFFER_SIZE) {
@@ -932,11 +933,15 @@ u32 CryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16 
                 ((mode & GAME_BOSS) && crypt_boss && (CryptBossSequential(buffer, i, read_bytes) != 0)) ||
                 ((mode & SYS_FIRM) && (DecryptFirmSequential(buffer, i, read_bytes) != 0)))
                 ret = 1;
+            if (set_flag && (i == 0) && (crypto == CRYPTO_DECRYPT) && (mode & GAME_NCCH) && (SetNcchSdFlag(buffer) != 0)) ret = 1;
+            if (sha) sha_update(buffer, read_bytes);
             if (inplace) fvx_lseek(ofp, fvx_tell(ofp) - read_bytes);
             if (fvx_write(dfp, buffer, read_bytes, &bytes_written) != FR_OK) ret = 1;
             if ((read_bytes != bytes_read) || (bytes_read != bytes_written)) ret = 1;
             if (!ShowProgress(offset + i + read_bytes, fsize, dest)) ret = 1;
         }
+        
+        if (sha) sha_get(sha);
     } else if (mode & (GAME_CIA|GAME_NUSCDN)) { // for NCCHs inside CIAs
         bool cia_crypto = getbe16(chunk->type) & 0x1;
         bool ncch_crypto; // find out by decrypting the NCCH header
@@ -974,6 +979,11 @@ u32 CryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16 
     if (buffer) free(buffer);
     
     return ret;
+}
+
+u32 CryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16 crypto,
+    u32 offset, u32 size, TmdContentChunk* chunk, const u8* titlekey) { // this line only for CIA contents
+    return HCryptNcchNcsdBossFirmFile(orig, dest, mode, crypto, NULL, false, offset, size, chunk, titlekey);
 }
 
 u32 CryptCiaFile(const char* orig, const char* dest, u16 crypto) {
@@ -1136,18 +1146,19 @@ u32 CryptCdnFile(const char* orig, const char* dest, u16 crypto) {
     return ret;
 }
 
-u32 PCryptGameFile(const char* path, const char* outpath, bool encrypt) {
+u32 PCryptGameFile(const char* path, const char* outpath, bool encrypt, bool calc_sha, bool set_flag) { // The set_flag paramater is only used for NCCHs
     u64 filetype = IdentifyFileType(path);
     u16 crypto = encrypt ? CRYPTO_ENCRYPT : CRYPTO_DECRYPT;
     char outdir[256] = { '\0' };
+    u8 sha_buf[0x20];
+    u8* sha = calc_sha ? sha_buf : NULL;
     const char* destptr = (char*) path;
     u32 ret = 0;
-    bool inplace = ((outpath == NULL) ? true : false);
+    bool inplace = (outpath == NULL);
     
-    if (!inplace) { // build output name
+    if (!inplace) {
         destptr = outpath;
         memcpy(outdir, outpath, strlen(outpath) - strlen(strrchr(outpath, '/')));
-        //ShowPrompt(false, outdir);
     }
     
     if (!CheckWritePermissions(destptr))
@@ -1164,9 +1175,22 @@ u32 PCryptGameFile(const char* path, const char* outpath, bool encrypt) {
         ret = CryptCdnFile(path, destptr, crypto);
     else if (filetype & SYS_FIRM)
         ret = DecryptFirmFile(path, destptr);
-    else if (filetype & (GAME_NCCH|GAME_NCSD|GAME_BOSS))
-        ret = CryptNcchNcsdBossFirmFile(path, destptr, filetype, crypto, 0, 0, NULL, NULL);
-    else ret = 1;
+    else if (filetype & (GAME_NCCH|GAME_NCSD|GAME_BOSS)) {
+        ret = HCryptNcchNcsdBossFirmFile(path, destptr, filetype, crypto, sha, set_flag, 0, 0, NULL, NULL);
+        
+        if (calc_sha) {
+            char sha_path[256];
+            FIL file;
+            
+            snprintf(sha_path, 256, "%s.sha", destptr);
+            
+            if ((fvx_open(&file, sha_path, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) ||
+                (fvx_write(&file, sha, 0x20, NULL) != FR_OK))
+                ret = 1;
+            
+            fvx_close(&file);
+        }
+    } else ret = 1;
     
     if (!inplace && (ret != 0))
         fvx_unlink(destptr); // try to get rid of the borked file
@@ -1179,7 +1203,7 @@ u32 CryptGameFile(const char* path, bool inplace, bool encrypt)
     char myPath[256] = { '\0' };
     sprintf(myPath, "%s%s", OUTPUT_PATH, strrchr(path, '/'));
     //ShowPrompt(false, myPath);
-    return PCryptGameFile(path, (inplace ? (const char*)NULL : myPath), encrypt);
+    return PCryptGameFile(path, (inplace ? NULL : myPath), encrypt, false, false);
 }
 
 u32 InsertCiaContent(const char* path_cia, const char* path_content, u32 offset, u32 size,
@@ -2710,7 +2734,8 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
         
         contentList = (TmdContentChunk*) &(tmd[1]);
         
-        char buf[3] = { '\0' };
+        char sha_path[256], buf[3] = { '\0' };
+        
         for (u8 i = 0; i < contentCount; i++) {
             
             for (u8 j = 0; j < 8; j += 2) {
@@ -2722,15 +2747,19 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
             
             memset(tcc.size, 0, 4);
             memset(tcc.type, 0, 2);
-            sprintf(myPath, "%s/%s.app", path, contents[i]);
+            snprintf(myPath, 256, "%s/%s.app", path, contents[i]);
             u64 size = fvx_qsize(myPath);
             size = getbe64((u8*)&size);
             memcpy(tcc.size, &size, 8);
+            snprintf(sha_path, 256, "%s.sha", myPath);
             
-            if (!FileGetSha256(myPath, tcc.hash, 0, 0)) {
+            if ((fvx_qread(sha_path, tcc.hash, 0, 0x20, NULL) != FR_OK) && !FileGetSha256(myPath, tcc.hash, 0, 0)) {
                 free(tmd);
                 return 1;
             }
+            
+            fvx_unlink(sha_path);
+            
             contentList[i] = tcc;
         }
         
