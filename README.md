@@ -25,7 +25,7 @@ You may use this under the terms of the GNU General Public License GPL v2 or und
 
 
 ## Credits:
-* Everyone who contributed in any way to [GodMode9](https://github.com/d0k3/GodMode9), as this is just a fork of it
+* Everyone who contributed in any way to [d0k3](https://github.com/d0k3)'s [GodMode9](https://github.com/d0k3/GodMode9), as this is just a fork of it
 * [3DBrew](https://www.3dbrew.org/wiki/Main_Page) and all its editors, for being an essential resource in making this tool
 * [@BpyH64](https://github.com/BpyH64) for figuring out the CMACs on the `.cmd` files, without which this tool would not be possible
 * [@wwylele](https://github.com/wwylele) for reverse engineering and documenting the internal format of the 3DS's `.db` files, and for creating [a tool that is able to modify those files](https://github.com/wwylele/save3ds), which was the inspiration for this tool's ability to modify those files from the arm9
