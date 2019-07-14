@@ -7,14 +7,14 @@ Installing cartridges to the SD this way bypasses the need to have 2 times as mu
 This tool is very far from being thouroughly tested, so if you encounter any problems, please submit them to the issue tracker.
 
 ## Usage
-Download `cartInstall.firm` from the [releases page](https://github.com/aspargas2/CartInstall/releases) and run it with the chainloader of your choice.
+Download `CartInstall.firm` from the [releases page](https://github.com/aspargas2/CartInstall/releases) and run it with the chainloader of your choice.
 
 This tool currently only officially works with SysNAND, but EmuNAND support is planned.
 
 If you somehow manage to install this tool to your firm0, you should first give yourself a solid facepalm. Then put [safeb9sinstaller](https://github.com/d0k3/safeb9sinstaller/releases)'s `.firm` on the sd root as `iderped.firm` and [boot9strap](https://github.com/SciresM/boot9strap/releases)'s `boot9strap.firm` and `boot9strap.firm.sha` in a `boot9strap` folder on the sd root, and boot the console. You should be in safeb9sinstaller, you doofus.
 
 ## How to build this / developer info
-Build `cartInstall.firm` by running `build.bat`. This requires [firmtool](https://github.com/TuxSH/firmtool), [Python 3.5+](https://www.python.org/downloads/) and [devkitARM](https://sourceforge.net/projects/devkitpro/) installed.
+Build `CartInstall.firm` by running `build.bat`. This requires [firmtool](https://github.com/TuxSH/firmtool), [Python 3.5+](https://www.python.org/downloads/) and [devkitARM](https://sourceforge.net/projects/devkitpro/) installed.
 Simply running `make` will build a normal-looking GodMode9. There is no use to doing this, and some scripting may be broken.
 
 For additional customization, you may choose the internal font by replacing `font_default.pbm` inside the `data` directory.

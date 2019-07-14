@@ -58,7 +58,7 @@ if isdir $[CONTENT_DIR]
 	end
 end
 
-set WORKDIR 0:/cartInstall
+set WORKDIR 0:/CartInstall
 mkdir -o -s $[WORKDIR]
 
 if not decrypt -o -h -f $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
