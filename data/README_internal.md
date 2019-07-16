@@ -3,7 +3,7 @@ This takes about 50% less time than the traditional method of converting the car
 If you encounter any issues during the use of this tool, please report them at https://github.com/aspargas2/CartInstall/issues.
 Please insert a 3DS cartridge, then press B to exit viewing this message.
 Credits:
-* Everyone who contributed in any way to GodMode9, as this is just a fork of it
+* Everyone who contributed in any way to d0k3's GodMode9, as this is just a fork of it
 * 3DBrew and all its editors, for being an essential resource in making this tool
 * @BpyH64 on GitHub for figuring out the CMACs on the .cmd files
 * @wwylele on GitHub for reverse engineering, documenting, and creating tools for handling the internal format of the .db files
