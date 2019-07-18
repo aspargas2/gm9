@@ -8,11 +8,11 @@ end
     
 @CartInstall
 if not find C:/*.trim.3ds ROM_PATH
-	if ask "Unable to detect 3DS cartridge.\n \nTry again?\nChoosing no will power off."
-		goto CartInstall
-	else
-		poweroff
-	end
+    if ask "Unable to detect 3DS cartridge.\n \nTry again?\nChoosing no will power off."
+        goto CartInstall
+    else
+        poweroff
+    end
 end
 
 if not imgmount $[ROM_PATH]
@@ -20,22 +20,22 @@ if not imgmount $[ROM_PATH]
 end
 
 if not find G:/content0.game.app CONTENT0_PATH
-	echo "Cartridge image mounted, but unable to find content0.\nThis should not happen.\nYour cartridge may be corrupted.\nThe system will now power off."
-	poweroff
+    echo "Cartridge image mounted, but unable to find content0.\nThis should not happen.\nYour cartridge may be corrupted.\nThe system will now power off."
+    poweroff
 end
 
 @SDCheck
 if not isdir 0:
-	if ask "Could not detect SD card.\n \nTry again?\nChoosing no will power off."
-		goto SDCheck
-	else
-		poweroff
-	end
+    if ask "Could not detect SD card.\n \nTry again?\nChoosing no will power off."
+        goto SDCheck
+    else
+        poweroff
+    end
 end
 
 if not find A:/dbs/title.db TITLEDB
-	echo "title.db in virtual SD data mount does not exist.\nPlease open the eShop or install any SD title,\nthen run CartInstall again."
-	poweroff
+    echo "title.db in virtual SD data mount does not exist.\nPlease open the eShop or install any SD title,\nthen run CartInstall again."
+    poweroff
 end
 
 if not find 1:/dbs/ticket.db TICKDB
@@ -44,8 +44,8 @@ if not find 1:/dbs/ticket.db TICKDB
 end
 
 if not allow A:/
-	echo "Write permissions denied.\nThe system will now power off."
-	poweroff
+    echo "Write permissions denied.\nThe system will now power off."
+    poweroff
 end
 
 fget -e $[CONTENT0_PATH]@118:4 TID_LOW
@@ -53,30 +53,30 @@ set TID_LOW_DIR A:/title/00040000/$[TID_LOW]
 set CONTENT_DIR $[TID_LOW_DIR]/content
 
 if isdir $[CONTENT_DIR]
-	if ask "Some data alredy exists on the SD for\nthe game on the gamecart!\n \nOverwrite it?\nChoosing no will power off."
-		rm $[CONTENT_DIR]
-	else
-		poweroff
-	end
+    if ask "Some data alredy exists on the SD for\nthe game on the gamecart!\n \nOverwrite it?\nChoosing no will power off."
+        rm $[CONTENT_DIR]
+    else
+        poweroff
+    end
 end
 
 set WORKDIR 0:/CartInstall
 mkdir -o -s $[WORKDIR]
 
 if not decrypt -o -h -f $[CONTENT0_PATH] $[CONTENT_DIR]/00000000.app
-	goto CopyFail
+    goto CopyFail
 end
 
 if find G:/content1.manual.app CONTENT1_PATH
-	if not decrypt -o -h -f $[CONTENT1_PATH] $[CONTENT_DIR]/00000001.app
-		goto CopyFail
-	end
+    if not decrypt -o -h -f $[CONTENT1_PATH] $[CONTENT_DIR]/00000001.app
+        goto CopyFail
+    end
 end
 
 if find G:/content2.dlp.app CONTENT2_PATH
-	if not decrypt -o -h -f $[CONTENT2_PATH] $[CONTENT_DIR]/00000002.app
-		goto CopyFail
-	end
+    if not decrypt -o -h -f $[CONTENT2_PATH] $[CONTENT_DIR]/00000002.app
+        goto CopyFail
+    end
 end
 
 imgumount
@@ -109,9 +109,9 @@ end
 
 if ask "Done!\n \nWould you like to install another cartridge game now?\nChoosing no will reboot."
     echo "Please swap cartridges now."
-	goto CartInstall
+    goto CartInstall
 else
-	reboot
+    reboot
 end
 
 @CopyFail
