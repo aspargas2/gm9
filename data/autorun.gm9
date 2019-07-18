@@ -108,6 +108,7 @@ if not chk $[SAVE_SIZE] 00000000
 end
 
 if ask "Done!\n \nWould you like to install another cartridge game now?\nChoosing no will reboot."
+    echo "Please swap cartridges now."
 	goto CartInstall
 else
 	reboot
@@ -117,7 +118,5 @@ end
 echo "Content decryption failed.\nThis could be due to not having enough free space\non the SD, or due to the user cancelling the copy."
 @ContentRemove
 echo "The system will now remove any gamedata created\nin this session and power off."
-for $[CONTENT_DIR] *
-    rm -o -s $[FORPATH]
-next
+rm -o -s $[CONTENT_DIR]
 poweroff
