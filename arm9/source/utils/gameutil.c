@@ -2695,10 +2695,8 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
     u8* cmd;
     UINT brw;
     
-    if (fvx_opendir(&dir, path) != FR_OK) {
-        ShowPrompt(false, "opendir fail!");
+    if (fvx_opendir(&dir, path) != FR_OK)
         return 1;
-    }
     
     while ((fvx_preaddir(&dir, &fno, "*.app") == FR_OK) && *(fno.fname)) {
         memcpy(contents[contentCount++], fno.fname, 8);
@@ -2709,10 +2707,8 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
     if (doTmd) {
         const UINT tmdSize = sizeof(TitleMetaData) + (contentCount * sizeof(TmdContentChunk));
         
-        if (!(tmd = malloc(tmdSize))) {
-            ShowPrompt(false, "tmd malloc fail!");
+        if (!(tmd = malloc(tmdSize)))
             return 1;
-        }
         
         memcpy(myPath, path, strlen(path));
         
@@ -2721,7 +2717,6 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
             saveSize = (u32) exthdr.savedata_size;
         } else if (LoadNcchHeaders(&ncch, NULL, NULL, myPath, 0) != 0) {
             free(tmd);
-            ShowPrompt(false, "Load content0 fail!");
             return 1;
         }
         
@@ -2790,10 +2785,8 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
         u32 cmdCmacCount = contentCount + (u32) (contents[1][7] == '2');
         u32 cmdSize = 0x20 + (0x18 * contentCount) + (0x14 * (cmdCmacCount - contentCount));
     
-        if (SetupSlot0x30(*path) != 0) {
-            ShowPrompt(false, "0x30 fail!");
+        if (SetupSlot0x30(*path) != 0)
             return 1;
-        }
         
         if (!(cmd = malloc(cmdSize)))
             return 1;
@@ -2898,10 +2891,8 @@ u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/) {
     bool has_manual = false;
     char dir_path[256], content0_path[256];
     u8 ncch[sizeof(NcchHeader) + sizeof(NcchExtHeader)];
-    int ret; // TEMPORARY. TODO: REMOVE THIS AND EVERYWHERE IT'S USED
     
-    if ((ret = sscanf(path, "%34s/%08lx.tmd", dir_path, &tmd_content_id)) != 2) { // assumption alert - assumes tmd is in a dir where a title would usually be installed
-        ShowPrompt(false, "sscanf failed.\n\npath was:\n%s\n\nreturn value was %d\n\ndir_path was:\n%s\n\ntmd_id was 0x%X", path, ret, dir_path, tmd_content_id);
+    if (sscanf(path, "%34s/%08lx.tmd", dir_path, &tmd_content_id) != 2) { // assumption alert - assumes tmd is in a dir where a title would usually be installed
         free(tmd);
         return 1;
     }
@@ -2909,7 +2900,6 @@ u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/) {
     
     if ((fvx_qread(content0_path, ncch, 0, sizeof(NcchHeader) + sizeof(NcchExtHeader), NULL) != FR_OK) ||
         (ValidateNcchHeader((NcchHeader*)(void*) ncch) != 0)) {
-        ShowPrompt(false, "Loading content0 ncch failed.\n\ncontent0_path was:\n%s", content0_path);
         free(tmd);
         return 1;
     }
@@ -2940,7 +2930,6 @@ u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/) {
     RemoveTitleInfoEntryFromDB(SD_TITLEDB_PATH(false), tmd->title_id);
     
     if ((AddTitleInfoEntryToDB(SD_TITLEDB_PATH(false), tmd->title_id, &tie) != 0) || (FixFileCmac(SD_TITLEDB_PATH(false)) != 0)) {
-        ShowPrompt(false, "add tie to db fail");
         free(tmd);
         return 1;
     }
