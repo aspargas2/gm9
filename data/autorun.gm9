@@ -7,6 +7,7 @@ if ask "Would you like to view the readme?"
 end
     
 @CartInstall
+cartinit -o -s
 if not find C:/*.trim.3ds ROM_PATH
     if ask "Unable to detect 3DS cartridge.\n \nTry again?\nChoosing no will power off."
         goto CartInstall
