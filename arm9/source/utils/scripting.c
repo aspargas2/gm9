@@ -16,6 +16,7 @@
 #include "ips.h"
 #include "bps.h"
 #include "tmd.h"
+#include "vcart.h"
 
 
 #define _MAX_ARGS       4
@@ -122,6 +123,7 @@ typedef enum {
     CMD_ID_ISDIR,
     CMD_ID_EXIST,
     CMD_ID_BOOT,
+    CMD_ID_CARTINIT,
     CMD_ID_SWITCHSD,
     CMD_ID_NEXTEMU,
     CMD_ID_REBOOT,
@@ -198,6 +200,7 @@ Gm9ScriptCmd cmd_list[] = {
     { CMD_ID_ISDIR   , "isdir"   , 1, 0 },
     { CMD_ID_EXIST   , "exist"   , 1, 0 },
     { CMD_ID_BOOT    , "boot"    , 1, 0 },
+    { CMD_ID_CARTINIT, "cartinit", 0, 0 },
     { CMD_ID_SWITCHSD, "switchsd", 1, 0 },
     { CMD_ID_NEXTEMU , "nextemu" , 0, 0 },
     { CMD_ID_REBOOT  , "reboot"  , 0, 0 },
@@ -1430,6 +1433,10 @@ bool run_cmd(cmd_id id, u32 flags, char** argv, char* err_str) {
             } else if (err_str) snprintf(err_str, _ERR_STR_LEN, "not a bootable firm");
             free(firm);
         }
+    }
+    else if (id == CMD_ID_CARTINIT) {
+        ret = (InitVCartDrive() != 0);
+        if (err_str) snprintf(err_str, _ERR_STR_LEN, "cart init failed");
     }
     else if (id == CMD_ID_SWITCHSD) {
         DeinitExtFS();
