@@ -921,7 +921,6 @@ u32 HCryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16
     }
         
     u32 ret = 0;
-    if (sha) sha_init(SHA256_MODE);
     if (!ShowProgress(offset, fsize, dest)) ret = 1;
     if (mode & (GAME_NCCH|GAME_NCSD|GAME_BOSS|SYS_FIRM|GAME_NDS)) { // for NCCH / NCSD / BOSS / FIRM files
         for (u64 i = 0; (i < size) && (ret == 0); i += STD_BUFFER_SIZE) {
@@ -934,7 +933,10 @@ u32 HCryptNcchNcsdBossFirmFile(const char* orig, const char* dest, u32 mode, u16
                 ((mode & SYS_FIRM) && (DecryptFirmSequential(buffer, i, read_bytes) != 0)))
                 ret = 1;
             if (set_flag && (i == 0) && (crypto == CRYPTO_DECRYPT) && (mode & GAME_NCCH) && (SetNcchSdFlag(buffer) != 0)) ret = 1;
-            if (sha) sha_update(buffer, read_bytes);
+            if (sha) {
+                if (i == 0) sha_init(SHA256_MODE);
+                sha_update(buffer, read_bytes);
+            }
             if (inplace) fvx_lseek(ofp, fvx_tell(ofp) - read_bytes);
             if (fvx_write(dfp, buffer, read_bytes, &bytes_written) != FR_OK) ret = 1;
             if ((read_bytes != bytes_read) || (bytes_read != bytes_written)) ret = 1;
