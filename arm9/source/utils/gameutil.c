@@ -2864,7 +2864,7 @@ u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/) {
     }
     
     if (ReadTicketFromDB(TICKDB_PATH(false), tmd->title_id, NULL) == 0)
-        do_ticket = ShowPrompt(true, "A ticket already existed for the title being installed.\nOverwite it with a fake ticket?\nChoosing no will proceed with installation,\nbut keep the current ticket.");
+        do_ticket = ShowPrompt(true, "A ticket already exists\nfor the title being installed.\n\nOverwite it with a fake ticket?\nChoosing no will proceed with installation,\nbut keep the current ticket.");
     
     if (do_ticket)
     {
