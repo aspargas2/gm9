@@ -75,7 +75,8 @@ typedef struct {
 typedef struct {
     u64 title_size; // in bytes
     u32 title_type; // usually == 0x40
-    u32 title_version;
+    u16 title_version_low;
+    u16 title_version_high;
     u8 flags_0[4];
     u32 tmd_content_id;
     u32 cmd_content_id;
