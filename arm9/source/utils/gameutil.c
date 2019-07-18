@@ -2787,7 +2787,8 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
     }
     
     if (doCmd) {
-        u32 cmdSize = 0x20 + (0x18 * contentCount);
+        u32 cmdCmacCount = contentCount + (u32) (contents[1][7] == '2');
+        u32 cmdSize = 0x20 + (0x18 * contentCount) + (0x14 * (cmdCmacCount - contentCount));
     
         if (SetupSlot0x30(*path) != 0) {
             ShowPrompt(false, "0x30 fail!");
@@ -2797,36 +2798,42 @@ u32 BuildCmdTmdFromSDDir(const char* path, bool doCmd, bool doTmd) {
         if (!(cmd = malloc(cmdSize)))
             return 1;
         
-        memset(cmd, 0, 0x10);
-        memset(cmd + 0x0, 1, 1);
-        memset(cmd + 0x4, contentCount, 1);
-        memset(cmd + 0x8, contentCount, 1);
-        memset(cmd + 0xC, 1, 1);
+        ((u32*)(void*)cmd)[0] = 1;
+        ((u32*)(void*)cmd)[1] = cmdCmacCount;
+        ((u32*)(void*)cmd)[2] = contentCount;
+        ((u32*)(void*)cmd)[3] = 1;
+        
         aes_cmac(cmd, cmd + 0x10, 1);
         
-        u32 var;
+        u32 contentID;
         u8 cmacMessageField[0x108];
         u8 shaBuf[0x20];
-        for (u32 i = 0; i < contentCount; i++) {
-            var = (u32)strtol(contents[i], NULL, 16);
-            memcpy(cmd + 0x20 + (i * 4), &var, 4);
-            sprintf(myPath, "%s/%s.app", path, contents[i]);
+        for (u32 i = 0; i < cmdCmacCount; i++) {
+            sprintf(myPath, "%s/%08lx.app", path, i);
             if ((fvx_qread(myPath, cmacMessageField, 0x100, 0x100, &brw) != FR_OK) || (brw != 0x100)) {
-                free(cmd);
-                return 1;
+                ((u32*)(void*)cmd)[8 + i] = 0xFFFFFFFFUL;
+                strncpy(contents[i + 1], contents[i], 8);
+                continue;
             }
+            
+            contentID = (u32) strtol(contents[i], NULL, 16);
+            ((u32*)(void*)cmd)[8 + i] = contentID;
+            
             memset(&(cmacMessageField[0x100]), 0, 8);
-            cmacMessageField[0x100] = (u8)var;
-            cmacMessageField[0x104] = (u8)var;
+            ((u32*)(void*)cmacMessageField)[0x40] = i;
+            ((u32*)(void*)cmacMessageField)[0x41] = contentID;
             sha_quick(shaBuf, cmacMessageField, 0x108, SHA256_MODE);
             
             if (SetupSlot0x30(*path) != 0) {
                 ShowPrompt(false, "0x30 fail!");
                 return 1;
             }
-            aes_cmac(shaBuf, cmd + 0x20 + (8 * contentCount) + (0x10 * i), 2);
+            aes_cmac(shaBuf, cmd + 0x20 + (4 * cmdCmacCount) + (4 * contentCount) + (0x10 * i), 2);
         }
-        memcpy(cmd + 0x20 + (contentCount * 4), cmd + 0x20, contentCount * 4);
+        
+        for (u32 i = 0; i < contentCount; i++) {
+            ((u32*)(void*)(cmd + 0x20 + (4 * cmdCmacCount)))[i] = (u32) strtol(contents[i], NULL, 16);
+        }
         
         sprintf(myPath, "%s/cmd/00000001.cmd", path);
         if (fvx_open(&mdFile, myPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
@@ -2920,12 +2927,13 @@ u32 InstallTicketTieFromTmd(const char* path/*, bool emu*/) {
     }
     
     tie.title_type = getbe32(tmd->title_type);
-    tie.title_version = getbe16(tmd->title_version);
+    tie.title_version_low = getbe16(tmd->title_version);
+    tie.title_version_high = ((NcchHeader*)(void*) ncch)->version;
     tie.flags_0[0] = has_manual ? 1 : 0;
     tie.tmd_content_id = tmd_content_id;
     tie.cmd_content_id = 1;
     tie.flags_1[0] = save_size ? 1 : 0;
-    tie.extdata_id_low = ((NcchHeader*)(void*) ncch)->size_exthdr ? *((u32*)(void*) (ncch + NCCH_EXTHDR_OFFSET + 0x30)) : 0;
+    tie.extdata_id_low = ((NcchHeader*)(void*) ncch)->size_exthdr ? *((u32*)(void*) (ncch + NCCH_EXTHDR_OFFSET + 0x230)) : 0;
     tie.flags_2[4] = 1;
     strcpy(tie.product_code, ((NcchHeader*)(void*) ncch)->productcode);
     
