@@ -98,7 +98,7 @@ if not insttmd $[CONTENT_DIR]/00000000.tmd
     goto ContentRemove
 end
 
-fget $[CONTENT_DIR]/00000000.tmd@19B:4 SAVE_SIZE
+fget -e $[CONTENT_DIR]/00000000.tmd@19A:4 SAVE_SIZE
 if not chk $[SAVE_SIZE] 00000000
     set SAVE_PATH $[TID_LOW_DIR]/data/00000001.sav 
     if not exist $[SAVE_PATH]
