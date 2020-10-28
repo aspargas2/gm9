@@ -27,13 +27,17 @@ jobs:
           python3 -m pip install git+https://github.com/TuxSH/firmtool.git
 
       - name: Build Project
+        run: make release
+
+      - name: Prepare build artifact
         run: |
-          make release
           cd release
-          echo "OUTNAME=$(ls GodMode9-*.zip)" >> $GITHUB_ENV
+          ZIPNAME=$(ls GodMode9-*.zip)
+          rm $ZIPNAME
+          echo "OUTNAME=${ZIPNAME%.zip}" >> $GITHUB_ENV
           cd ..
 
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.OUTNAME }}
-          path: release/GodMode9-*.zip
+          path: release/*
