@@ -26,5 +26,11 @@ jobs:
           python3 -m pip install cryptography
           python3 -m pip install git+https://github.com/TuxSH/firmtool.git
           
+      - name: Where tf am I
+        run: |
+          pwd
+          ls -la
+          git status
+
       - name: Build Project
         run: make release
