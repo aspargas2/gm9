@@ -44,7 +44,7 @@
 
 
 typedef struct {
-    char path[256]; aaaaaaaaaaaaaaaaaaaaaaa
+    char path[256];
     u32 cursor;
     u32 scroll;
 } PaneData;
